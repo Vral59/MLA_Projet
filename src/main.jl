@@ -6,8 +6,8 @@ function main()
     n, m, opening_cost, cost_connection = read_data("data/instTest.txt")
 
     # Affichage des résultats
-    println("n = $n")
-    println("m = $m")
+    println("n = $n") # nombre de clients
+    println("m = $m") # nombres de sites
     println("Opening Cost : $opening_cost")
     println("Cost Connection : $cost_connection")
 end

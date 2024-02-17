@@ -28,17 +28,19 @@ function read_data(file_path)
 
     # Initialiser le vecteur et la matrice
     opening_cost = zeros(Int, n)
-    cost_connection = zeros(Int, n, m)
+    cost_connection = zeros(Int, m, n)
 
     # Lire les lignes suivantes pour remplir le vecteur et la matrice
     for i in 1:n
         line = split(readline(file))
         opening_cost[i] = parse(Int, line[2])
-        cost_connection[i, :] .= parse.(Int, line[3:end])
+        cost_connection[:, i] .= parse.(Int, line[3:end])
     end
 
     # Fermer le fichier
     close(file)
+
+    n, m = m,n
 
     return n, m, opening_cost, cost_connection
 end
