@@ -72,3 +72,56 @@ function main()
     
    
 end
+
+function partiePos(a)
+    if a >= 0
+        return a
+    end
+    return 0
+end
+
+function heurGlou(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int})
+    """heurGlou retourne S, z, nu comme définis dans l'algorithme Chapitre 1"""
+    j_min = argmin([opening_cost[j] + sum(cost_connection[i,j] for i in 1:n) for j in 1:m])
+    S = [j_min]
+    nu = [cost_connection[i,j_min] for i in 1:n]
+    z = opening_cost[j_min] + sum(nu[i] for i in 1:n)
+    stop = false
+    while !stop
+        println("S = ", S)
+        sites = setdiff(1:m, S)
+        Deltas = [opening_cost[j] - sum(partiePos(nu[i] - cost_connection[i,j]) for i in 1:n) for j in sites]
+        j_min = argmin(Deltas) 
+        site_j_min = sites[argmin(Deltas)] # sinon probleme d'indice comme Delta n'a pas tous les indices
+        if Deltas[j_min] >= 0
+            return(S, z, nu)
+        else
+            z += Deltas[j_min]
+            push!(S, site_j_min)
+            nu = [nu[i] - partiePos(nu[i] - cost_connection[i,site_j_min]) for i in 1:n]
+        end   
+    end
+end
+
+
+function main_heurGlou()
+    """heurGlou retourne S, z, nu comme définis dans l'algorithme Chapitre 1"""
+
+    n, m, opening_cost, cost_connection = read_data("data/instTest.txt")
+    S, z, nu = heurGlou(n, m, opening_cost, cost_connection)
+    println("cout heurGlou = ", z)
+    println("capteurs heurGlou = ", S, "\n")
+
+    obj, temps, noeuds, x, y = PLS(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
+    println("cout PLS = ", obj)
+    println("capteurs PLS = ", [i for (i, value) in enumerate(y) if value >= 1e-5])
+
+    #verification heurGlou
+    #res = sum(opening_cost[j] for j in S)
+    #for i in 1:n
+    #    res += minimum([cost_connection[i,j] for j in S])
+    #end
+    #print("verification res = ", res)
+
+end
+
