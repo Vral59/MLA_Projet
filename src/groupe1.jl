@@ -48,9 +48,7 @@ function PLS(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{
 end
 
 
-function main()
-    n, m, opening_cost, cost_connection = read_data("data/instTest.txt")
-
+function main_pls(n, m, opening_cost, cost_connection)
     # exemples d'utilisation de PLS
     # formulation forte, pb relache, pas d'affichage
     obj, temps, noeuds, x, y = PLS(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  true, silence = true)
@@ -69,8 +67,6 @@ function main()
     println("Valeur formulation faible = ", obj)
 
     # les trois derniers arguments peuvent ne pas être specifiés. valeurs par défaut: S, false, false (formulation forte, PLNE, modele bavard)
-    
-   
 end
 
 function partiePos(a)
@@ -104,10 +100,8 @@ function heurGlou(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Ma
 end
 
 
-function main_heurGlou()
+function main_heurGlou(n, m, opening_cost, cost_connection)
     """heurGlou retourne S, z, nu comme définis dans l'algorithme Chapitre 1"""
-
-    n, m, opening_cost, cost_connection = read_data("data/instTest.txt")
     S, z, nu = heurGlou(n, m, opening_cost, cost_connection)
     println("cout heurGlou = ", z)
     println("capteurs heurGlou = ", S, "\n")
@@ -124,4 +118,3 @@ function main_heurGlou()
     #print("verification res = ", res)
 
 end
-

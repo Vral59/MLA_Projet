@@ -1,4 +1,4 @@
-FILE: Exapmle.txt
+FILE: Example.txt
 4 3 0
 1 300 130 120 80
 2 400 140 100 50
