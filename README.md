@@ -1,6 +1,6 @@
 # MLA_Projet
 Ce repository  sert de plateforme commune pour les projets de Modèles de Localisation et Applications (MLA).
-
+<u>Attention : </u> Il faut me contacter afin d'être en collaborateur sur le Git (Val Bc sur messenger)
 ## Environnement
 julia version 1.8.5
 Bibliothèques :
