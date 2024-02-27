@@ -65,7 +65,7 @@ function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Mat
 
     if variante
         for i in 1:n
-            @constraint(model, [k in 2:length(sorted_distances[i])], z[i,k] + 1- z[i,k-1] + sum(y[j] for j in 1:m if cost_connection[i,j] == sorted_distances[i][k]) >= 1)
+            @constraint(model, [k in 2:length(sorted_distances[i])], z[i,k] - z[i,k-1] + sum(y[j] for j in 1:m if cost_connection[i,j] == sorted_distances[i][k]) >= 0)
         end
     else
         for i in 1:n
