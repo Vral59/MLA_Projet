@@ -1,5 +1,5 @@
 include("readData.jl")
-include("groupe1.jl")
+include("groupes/groupe1.jl")
 
 function main_grp1(filepath)
     # Execution du travail du groupe 1 sur la formulation faible/forte et l'heuritique gloutonne
@@ -15,6 +15,18 @@ end
 
 function main_grp3(filepath)
     # Execution du travail du groupe 3
+end 
+
+function main_grp4(filepath)
+    # Execution du travail du groupe 4
+end 
+
+function main_grp5(filepath)
+    # Execution du travail du groupe 5
+end 
+
+function main_grp6(filepath)
+    # Execution du travail du groupe 6
 end 
 
 function main()
