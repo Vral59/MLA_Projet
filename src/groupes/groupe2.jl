@@ -9,16 +9,16 @@ include("../readData.jl")
 function main_pls_bis(n, m, opening_cost, cost_connection)
     # Formulation alternative, relaché
     obj, time, node, z, y = PLS_bis(n, m, opening_cost, cost_connection, pb_relache = true)
-    println("\nValeur relaxation formulation alternative = ", obj, "\n \n")
+    println("\nValeur relaxation formulation alternative = ", obj, " en " , time, "s\n \n")
     # Formulation alternative, exacte
     obj, time, node, z, y = PLS_bis(n, m, opening_cost, cost_connection, pb_relache = false)
-    println("Valeur formulation alternative = ", obj, "\n \n")
+    println("Valeur formulation alternative = ", obj, " en " , time, "s\n \n")
     # Formulation alternative, relaché, variante
     obj, time, node, z, y = PLS_bis(n, m, opening_cost, cost_connection, pb_relache = true, variante = true)
-    println("Valeur relaxation formulation alternative (variante) = ", obj, "\n \n")
+    println("Valeur relaxation formulation alternative (variante) = ", obj, " en " , time, "s\n \n")
     # Formulation alternative, exacte, variante
     obj, time, node, z, y = PLS_bis(n, m, opening_cost, cost_connection, pb_relache = false, variante = true)
-    println("Valeur formulation alternative (variante) = ", obj, "\n \n")
+    println("Valeur formulation alternative (variante) = ", obj, " en " , time, "s\n \n")
 end
 
 function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int}; pb_relache::Bool = false, silence::Bool = true, variante::Bool = false)
@@ -65,7 +65,7 @@ function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Mat
 
     if variante
         for i in 1:n
-            @constraint(model, [k in 2:length(sorted_distances[i])], z[i,k] + z[i,k-1] + sum(y[j] for j in 1:m if cost_connection[i,j] == sorted_distances[i][k]) >= 1)
+            @constraint(model, [k in 2:length(sorted_distances[i])], z[i,k] + 1- z[i,k-1] + sum(y[j] for j in 1:m if cost_connection[i,j] == sorted_distances[i][k]) >= 1)
         end
     else
         for i in 1:n

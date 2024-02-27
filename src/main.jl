@@ -46,7 +46,7 @@ function main()
     # main_grp1("data/instTest.txt")
 
     # Execution du code du groupe 2
-    main_grp2("data/instTest.txt")
+    main_grp2("data/instRand_50_50_1.txt")
 
     # Execution du code du groupe 3
 end
