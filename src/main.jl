@@ -2,6 +2,7 @@ include("readData.jl")
 include("groupes/groupe1.jl")
 include("groupes/groupe2.jl")
 
+
 function main_grp1(filepath)
     # Execution du travail du groupe 1 sur la formulation faible/forte et l'heuritique gloutonne
     println("Résolution pour le fichier : $filepath")
@@ -14,23 +15,24 @@ function main_grp2(filepath)
     println("Résolution pour le fichier : $filepath")
     n, m, opening_cost, cost_connection = read_data(filepath)
     main_pls_bis(n, m, opening_cost, cost_connection)
-end 
+end
 
 function main_grp3(filepath)
     # Execution du travail du groupe 3
-end 
+end
 
 function main_grp4(filepath)
     # Execution du travail du groupe 4
-end 
+end
 
 function main_grp5(filepath)
     # Execution du travail du groupe 5
-end 
+end
 
 function main_grp6(filepath)
     # Execution du travail du groupe 6
-end 
+end
+
 
 function main()
     # Exemple d'utilisation avec le fichier "Example.txt"
@@ -47,7 +49,8 @@ function main()
     # main_grp1("data/instTest.txt")
 
     # Execution du code du groupe 2
-    main_grp2("data/instA1.txt")
+    main_grp2("data/instTest.txt")
+    # benchmark_grp2()
 
     # Execution du code du groupe 3
 end
