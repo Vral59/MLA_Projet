@@ -30,7 +30,8 @@ function benchmark_grp2()
         println("\nFormulation alternative exacte")
         obj, bound, time, n_nodes, n_variables, n_constraints = PLS_bis(n, m, opening_cost,
         cost_connection, pb_relache = false, silence = silence, time_limit = time_limit)
-        push!(data, (entry, "formul_alt", obj, bound, time, n_nodes, root_obj, root_bound, n_variables, n_constraints))
+        push!(data, (entry, "formul_alt", round(obj, digits=1), round(bound, digits=1), round(time, digits=3),
+            n_nodes, round(root_obj, digits=1), round(root_bound, digits=1), n_variables, n_constraints))
 
         # Formulation alternative variante
         println("\nFormulation alternative variante relachée")
@@ -40,7 +41,8 @@ function benchmark_grp2()
         println("\nFormulation alternative variante exacte")
         obj, bound, time, n_nodes, n_variables, n_constraints = PLS_bis(n, m, opening_cost,
             cost_connection, pb_relache = false, variante = true, silence = silence, time_limit = time_limit)
-        push!(data, (entry, "formul_alt_variante", obj, bound, time, n_nodes, root_obj, root_bound, n_variables, n_constraints))
+        push!(data, (entry, "formul_alt_variante", round(obj, digits=1), round(bound, digits=1), round(time, digits=3),
+            n_nodes, round(root_obj, digits=1), round(root_bound, digits=1), n_variables, n_constraints))
 
         df = DataFrame(data, columns)
         CSV.write("results/benchmark_grp2_.csv", df)
