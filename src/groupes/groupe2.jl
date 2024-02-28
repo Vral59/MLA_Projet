@@ -11,7 +11,7 @@ include("../readData.jl")
 function benchmark_grp2()
     repo_path = "data"
     time_limit = 60
-    silence = true
+    silence = false
 
     columns = ["instance", "method", "obj", "bound", "time", "n_nodes",  "root_obj", "root_bound", "n_variables", "n_constraints"]
     data = []
@@ -51,7 +51,7 @@ function benchmark_grp2()
 end
 
 
-function main_pls_bis(n, m, opening_cost, cost_connection; time_limit = 30, silence = true)
+function main_pls_bis(n, m, opening_cost, cost_connection; time_limit = 30, silence = false)
     # Formulation alternative, relaché
     obj, bound, time, n_nodes, n_variables, n_constraints = PLS_bis(n, m, opening_cost,
         cost_connection, pb_relache = true, silence = silence, time_limit = time_limit)
@@ -114,28 +114,32 @@ function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Mat
 
     sorted_distances = map(i -> sort(unique(cost_connection[i, :])), 1:n)
     max_distinct_distances = maximum(length.(sorted_distances))
-    # map of vector. If the problem is large, would be better to be an array and padd with anything at the end
+    # Les matrices sont plus faciles à manipuler que les tableaux de tableaux
+    sorted_distances_array = 1e8 * ones(Int, n, max_distinct_distances)
+    for i in 1:n
+        sorted_distances_array[i, 1:length(sorted_distances[i])] = sorted_distances[i]
+    end
 
     @variable(model, y[1:m], Bin)
     @variable(model, z[1:n, 1:max_distinct_distances], Bin)
 
-    @constraint(model, [i in 1:n], z[i,1] + sum(y.*(cost_connection[i,:] .== sorted_distances[i][1])) >= 1)
+    @constraint(model, [i in 1:n], z[i,1] + sum(y.*(cost_connection[i,:] .== sorted_distances_array[i,1])) >= 1)
+
     if variante
-        @constraint(model, [i in 1:n, k in 2:length(sorted_distances[i])],
-            z[i,k] - z[i,k-1] + sum(y.*(cost_connection[i,:] .== sorted_distances[i][k])) >= 0)
+        # On a essayé de vectoriser ces expression pour gagner en performance sans réussir 
+        # Donc construire des gros problèmes prend du temps (double boucle sur i et k)
+        @constraint(model, [i in 1:n, k in 2:max_distinct_distances],
+            z[i,k] - z[i,k-1] + sum(y.*(cost_connection[i,:] .== sorted_distances_array[i,k])) >= 0)
     else
-        @constraint(model, [i in 1:n, k in 2:length(sorted_distances[i])],
-            z[i,k] + sum(y.*(cost_connection[i,:] .<= sorted_distances[i][k])) >= 1)
+        @constraint(model, [i in 1:n, k in 2:max_distinct_distances],
+            z[i,k] + sum(y.*(cost_connection[i,:] .<= sorted_distances_array[i,k])) >= 1)
     end
     @constraint(model, [i in 1:n], z[i, length(sorted_distances[i]):end] .== 0)
 
-
     opening_cost_value = sum(opening_cost.*y)
-    # Large problems are long to write, because there are too many "+" operations in the following lines (for)
-    # it would be better if sorted_distances was an array so that operations between arrays can be used
     assignation_cost = begin
-        sum(sorted_distances[i][1] for i in 1:n) +
-        sum(z[i,k]*(sorted_distances[i][k+1] - sorted_distances[i][k]) for i in 1:n for k in 1:length(sorted_distances[i])-1)
+        sum(sorted_distances_array[:,1]) 
+        + sum(z[:, 1:end-1] .* (sorted_distances_array[:, 2:end] .- sorted_distances_array[:, 1:end-1]))
     end
     total_cost = opening_cost_value + assignation_cost
     @objective(model, Min, total_cost)
@@ -164,15 +168,15 @@ function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Mat
     if !silence
         println("Nombre de variables: ", n_variables)
         println("Nombre de contraintes: ", n_constraints)
-
         println("Objective value: ", obj_value)
+        println("Lower bound: ", lower_bound)
+
         if has_values(model)
             println("Opening cost: ", value(opening_cost_value))
             println("Assignation cost: ", value(assignation_cost))
         end
 
-        println("Lower bound: ", lower_bound)
-        println("Solve time: ", time)
+        println("Solve time: ", round(time, digits=4), "s")
         println("Number of nodes: ", n_nodes)
     end
 
