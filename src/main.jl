@@ -45,6 +45,7 @@ function main()
     println("m = $m") # nombres de sites
     println("Opening Cost : $opening_cost")
     println("Cost Connection : $cost_connection")
+    println()
 
     # Execution du code du groupe 1
     # main_grp1("data/instTest.txt")
