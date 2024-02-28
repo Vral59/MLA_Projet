@@ -1,192 +1,168 @@
-#Arthur Divanovic et Axel Navarro
+using JuMP
+using CPLEX
+using CSV
+using DataFrames
 
-function main_pls_primal_dual(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int})
-    obj, x, y, resolution_time = PLS_primal_dual(n, m, opening_cost, cost_connection)
+# Mohamed Hamdi et Daria Stepanova
+# formulation NPC
 
-    println("Coût PLS Primal-Dual= ", obj)
 
-    println("Solutions (site j : [clients i affectés à j])")
-    display_solution(n,x,y)
 
-    println("Temps de résolution : ", resolution_time)
-end 
 
-function PLS_primal_dual(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int})
-    f = opening_cost
-    c = cost_connection
 
-    start_time = time()
-    v, w, x, y = phase1(n,m,f,c)
-    x, y = phase2(n,c,w,x,y)
-    obj = sum(x .* c) + sum(y .* f)
-    end_time = time() - start_time
-    return obj, x, y, end_time
+function read_data_grp4(file_path)
+    """Lis n,m et les distances"""
+    
+    file = open(file_path, "r")
+
+    filename = readline(file)
+    println("Lecture du fichier : $filename")
+
+    n, m, _ = parse.(Int, split(readline(file)))
+
+    cost_connection = zeros(Int, m, n)
+
+    for i in 1:n
+        line = split(readline(file))
+        cost_connection[:, i] .= parse.(Int, line[3:end])
+    end
+
+    close(file)
+
+    n, m = m,n
+
+    return n, m, cost_connection
 end
 
-function phase1(n::Int, m::Int, f::Vector{Int}, c::Matrix{Int})::Tuple{Vector{Int},Matrix{Int},Matrix{Int},Vector{Int}}
-    v = zeros(Int, n)
-    w = zeros(Int, n, m)
-    x = zeros(Int, n, m)
-    y = zeros(Int, m)
 
-    # Matrix to identify the indices i,j s.t. v_i = w_i,j should be maintained.
-    relation_maintained = zeros(Int, n, m)
 
-    all_affected = false
-    while !all_affected
 
-        # 1. v_i = c_i,j and facility j is open.
-        for i = 1:n
-            for j = 1:m
-                if v[i] == c[i,j] && y[j] == 1
-                    # Affect i to j.
-                    x[i,j] = 1
-                end
-            end
-        end
 
-        # 2. v_i = c_i,j and facility j is closed.
-        for i = 1:n
-            for j = 1:m
-                if v[i] == c[i,j] && y[j] == 0
-                    # Maintain v_i = w_i,j.
-                    relation_maintained[i,j] = 1
-                end
-            end
-        end
 
-        # 3. sum(w_i,j) = f_j for facility j.
-        for j = 1:m
-            if sum(w[:,j]) == f[j]
-                # Open facility j.
-                y[j] = 1
-
-                for i = 1:n
-                    if sum(x[i,:]) == 0 && v[i] >= c[i,j]
-                        # Affect the non-affected clients s.t. v_i >= c_i,j.
-                        x[i,j] = 1
-                    end
-                end
-
-            end
-        end
-
-        # Check if all clients are affected and modify v if not.
-        all_affected = true
-        for i = 1:n
-            if sum(x[i,:]) == 0
-                # Client i is not affected.
-                all_affected = false
-                # Increase v_i.
-                v[i] += 1
-                for j = 1:m 
-                    # Increase w_i,j for all the facilities j considered in step 2.
-                    if relation_maintained[i,j] == 1
-                        w[i,j] += 1
-                    end
-                end
+function distances_triées(n::Int, m::Int, distances::Matrix{Int})
+    """Renvoit les distances différentes triées et leur nombre K"""
+    # n nombre de clients
+    # m nombre de sites
+    
+    distances_différentes = []
+    for i in 1:n
+        for j in 1:m
+            if !(distances[i,j] in distances_différentes)
+                push!(distances_différentes,distances[i,j])
             end
         end
     end
+    
+    distances_différentes = sort(distances_différentes)
+    K = length(distances_différentes)
 
-    return v, w, x, y
+    return (K,distances_différentes)
+end
+
+
+
+
+
+
+function NPC(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = false)
+    """formulation NPC"""
+    # n nombre de clients
+    # m nombre de sites
+    # p nombre de sites à ouvrir
+    # distances matrice des distances/coûts
+
+    distances_K_D = distances_triées(n::Int, m::Int, distances)
+    K, D = distances_K_D[1], distances_K_D[2]
+
+
+    model = Model(CPLEX.Optimizer)
+    if silence
+        set_silent(model)
+    end
+
+    @variable(model, z[1:(K-1)], Bin)
+    @variable(model, y[1:m], Bin)
+
+    
+    @constraint(model, [i in 1:n], sum(y[j] for j in 1:m)  == p)
+    
+    @constraint(model, [i in 1:n, k in 1:(K-1)], z[k]+sum(y[j] for j in 1:m if distances[i,j]<=D[k])  >= 1)
+
+
+
+    @objective(model, Min, D[1]+sum((D[k]-D[k-1]) * z[k-1] for k in 2:K))
+
+    optimize!(model)
+
+
+    return objective_value(model), round(solve_time(model),digits=5), node_count(model), value.(y), value.(z)
+end
+
+
+
+
+
+
+
+
+
+function main_npc(data, p)
+
+    n, m, distances = read_data_grp4(data)
+
+    obj, temps, noeuds, y, z = NPC(n,m,p,distances)
+    println("Valeur distance max = ", obj, "\n \n")
+    println("Sites ouverts = ", y, "\n \n")
+    println("Temps de calcul = ", temps, "\n \n")
 
 end
 
-function phase2(n::Int, c::Matrix{Int}, w::Matrix{Int}, x::Matrix{Int}, y::Vector{Int})
-    V = findall(x -> x == 1, y)
-    adj = zeros(Int, length(V), length(V))
 
-    #Construction de la matrice d'adjacence
-    for idx1 = 1:length(V)
-        for idx2 = idx1+1:length(V)
-            j1 = V[idx1]
-            j2 = V[idx2]
-            for i = 1:n
-                if w[i,j1] > 0 && w[i,j2] > 0
-                    adj[idx1,idx2] = 1
-                    adj[idx2, idx1] = 1
-                end
-            end
+
+
+
+
+
+
+
+function lister_chemins_data(dossier::String="")
+    """Renvoit la liste des chemins des fichiers de données"""
+    # dossier: chemin du dossier 'data' 
+
+    chemin_dossier = dossier == "" ? pwd() : joinpath(pwd(), dossier)
+    
+    println("Chemin du dossier : ", chemin_dossier) 
+    
+    chemins_data = String[]
+    
+    for fichier in readdir(chemin_dossier, join=true)
+        println("Fichier trouvé : ", fichier) 
+        if isfile(fichier)
+            push!(chemins_data, fichier)
         end
     end
-
-    #Index des sommets du stable X
-    X_idx = zeros(Int, length(V))
-
-    while true
-        # Trouver le sommet de V \ X avec le moins de voisins dans X
-        best_idx = argmin([X_idx[idx] == 1 ? typemax(Int) : sum(adj[idx,:] .* X_idx) for idx in 1:length(V)])
-        
-        # Si ce sommet est relié à X ou si tous les sommets ont été ajouté -> arrêter
-        if sum(adj[best_idx, :] .* X_idx) > 0 || sum(X_idx) == length(V)
-            break
-        end
-        
-        # Sinon jouter le sommet à X
-        X_idx[best_idx] = 1
-    end
-
-    V_menus_X_idx = [1-v for v in X_idx]
-    V_menus_X = V[findall(x -> x == 1, V_menus_X_idx)]
-    X = V[findall(x -> x == 1, X_idx)]
-
     
-    for idx = 1:length(V)
-        j = V[idx]
-    
-        # Si j appartient à V \ X
-        if V_menus_X_idx[idx] == 1
-            
-    
-            #Fermeture du site j
-            y[j] = 0
-    
-            #Pour chaque client i 
-            for i = 1:n
-                
-                # Si le client i était affecté à j
-                if x[i,j] == 1
-                    
-                    # i n'est plus affecté à j 
-                    x[i,j] = 0
-                    
-                    #Si i n'a plus de site affecté, on cherche un site j' dans X
-                    if sum(x[i,:]) == 0
-    
-                        # On cherche le meilleur site j' appartenant X et voisin de j dans G
-                        best_new_j = nothing
-                        best_cost = typemax(Int)
-        
-                        for new_idx = 1:length(V)
-                            # Si le sommet appartient à X, est voisin de j dans le graphe et a un meilleur coût 
-                            if X_idx[new_idx] == 1 && adj[idx,new_idx] == 1 && c[i,V[new_idx]] < best_cost
-                                best_new_j = V[new_idx]
-                                best_cost = c[i,best_new_j]
-                            end
-                        end
-
-                        # i est affecté à j'
-                        x[i,best_new_j] = 1
-                    end
-                end
-            end
-        end
-    end
-
-    return x, y
+    return reverse(chemins_data)
 end
 
-function display_solution(n::Int, x::Matrix{Int}, y::Vector{Int})
-    opens = findall(x -> x == 1, y)
 
-    for j in opens
-        clients = Int[]
-        for i = 1:n
-            if x[i,j] == 1
-                push!(clients, i)
-            end
-        end
-        println("site ", j, " : ", clients)
+
+
+function resultats_csv(chemins_fichiers::Vector{String}, fichier_csv::String)
+    """Sauvegarde les resultat dans un csv"""
+    # chemins_fichiers: liste des chemins des fichiers
+    # fichier_csv: chemin du fichier csv avec les resultats_csv
+
+    df = CSV.read(fichier_csv, DataFrame)
+
+    for chemin in chemins_fichiers
+        nom_fichier = basename(chemin)
+        n, m, distances = read_data_grp4(chemin)
+        obj, temps, noeuds, y, z = NPC(n,m,3,distances)
+        push!(df, (instances=nom_fichier, p=3, distance_max=obj, temps_calcul=temps,n_noeuds=noeuds))
     end
+
+    CSV.write(fichier_csv, df)
 end
+
+

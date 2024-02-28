@@ -1,7 +1,10 @@
 include("readData.jl")
 include("groupes/groupe1.jl")
 include("groupes/groupe2.jl")
+include("groupes/groupe3.jl")
 include("groupes/groupe4.jl")
+include("groupes/groupe5.jl")
+
 
 function main_grp1(filepath)
     # Execution du travail du groupe 1 sur la formulation faible/forte et l'heuritique gloutonne
@@ -15,26 +18,30 @@ function main_grp2(filepath)
     println("Résolution pour le fichier : $filepath")
     n, m, opening_cost, cost_connection = read_data(filepath)
     main_pls_bis(n, m, opening_cost, cost_connection)
-end 
+end
 
 function main_grp3(filepath)
-    # Execution du travail du groupe 3
+    # Execution du travail du groupe 3 : Problème de p-centres
+    println("Résolution pour le fichier : $filepath")
+    n, m, opening_cost, cost_connection = read_data(filepath)
+    main_p_centres(n, m, cost_connection, 3)
 end 
 
 function main_grp4(filepath)
     # Execution du travail du groupe 4
+end
+
+function main_grp5(filepath)
+    # Execution du travail du groupe 5 : PLS Primal Dual
     println("Résolution pour le fichier : $filepath")
     n, m, opening_cost, cost_connection = read_data(filepath)
     main_pls_primal_dual(n, m, opening_cost, cost_connection)
-end 
-
-function main_grp5(filepath)
-    # Execution du travail du groupe 5
-end 
+end
 
 function main_grp6(filepath)
     # Execution du travail du groupe 6
-end 
+end
+
 
 function main()
     # Exemple d'utilisation avec le fichier "Example.txt"
@@ -45,18 +52,20 @@ function main()
     println("m = $m") # nombres de sites
     println("Opening Cost : $opening_cost")
     println("Cost Connection : $cost_connection")
+    println()
 
     # Execution du code du groupe 1
     # main_grp1("data/instTest.txt")
 
     # Execution du code du groupe 2
-    # main_grp2("data/instRand_50_50_1.txt")
+    # main_grp2("data/instTest.txt")
+    # benchmark_grp2()
 
     # Execution du code du groupe 3
+    # main_grp3("data/instRand_50_50_1.txt")
 
-    # Execution du code du groupe 4
-    main_grp4("data/ga250a-4")
-
+    # Execution du code du groupe 5
+    main_grp5("data/instTest.txt")
 end
 
 main()
