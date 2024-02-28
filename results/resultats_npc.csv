@@ -1,8 +1,0 @@
-instances,p,distance_max,temps_calcul,n_noeuds
-instTest.txt,3,100.0,0.021,0
-instC3.txt,3,30031.0,0.239,0
-instC2.txt,3,30031.0,0.09,0
-instC1.txt,3,30034.0,0.115,0
-instA3.txt,3,30035.0,0.038,0
-instA2.txt,3,30031.0,0.043,0
-instA1.txt,3,30034.0,0.033,0
