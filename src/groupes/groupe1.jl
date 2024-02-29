@@ -1,10 +1,13 @@
+# Valentin et Agathe
+
 using JuMP
 using CPLEX
+using DataFrames
+using CSV
 include("../readData.jl")
 
 
-function PLS(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int}; formulation::String = "S", pb_relache::Bool = false, silence::Bool = false)
-    """formulation forte"""
+function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int}; formulation::String = "S", pb_relache::Bool = false, silence::Bool = false)
     # n nombre de sites
     # m le nombre de clients
     #n, m = m, n
@@ -15,6 +18,8 @@ function PLS(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{
     if silence
         set_silent(model)
     end
+    set_time_limit_sec(model, 600)
+    MOI.set(model, MOI.NumberOfThreads(), 1)
 
     @variable(model, x[1:n, 1:m] >= 0)
     @variable(model, y[1:m], Bin)
@@ -44,26 +49,36 @@ function PLS(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{
 
     optimize!(model)
 
-    return objective_value(model), solve_time(model), node_count(model), value.(x), value.(y)
+    sites = [i for i in 1:m if value(y[i]) > 1e-5]
+
+    feasibleSolutionFound = primal_status(model) == MOI.FEASIBLE_POINT
+    if feasibleSolutionFound
+        if !pb_relache
+            gap = MOI.get(model, MOI.RelativeGap())
+        else 
+            gap = 0
+        end
+        return objective_value(model), solve_time(model), node_count(model), value.(x), sites, gap
+    end
 end
 
 
-function main_pls(n, m, opening_cost, cost_connection)
-    # exemples d'utilisation de PLS
+function main_PL(n, m, opening_cost, cost_connection)
+    # exemples d'utilisation de PL
     # formulation forte, pb relache, pas d'affichage
-    obj, temps, noeuds, x, y = PLS(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  true, silence = true)
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  true, silence = true)
     println("Valeur relaxation formulation forte = ", obj, "\n \n")
 
     # formulation faible, pb relache, pas d'affichage
-    obj, temps, noeuds, x, y = PLS(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  true, silence = true)
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  true, silence = true)
     println("Valeur relaxation formulation faible = ", obj, "\n \n")
 
     # formulation forte, PLNE, pas d'affichage
-    obj, temps, noeuds, x, y = PLS(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
     println("Valeur formulation forte = ", obj, "\n \n")
     
     # formulation faible, PLNE, pas d'affichage
-    obj, temps, noeuds, x, y = PLS(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  false, silence = true)
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  false, silence = true)
     println("Valeur formulation faible = ", obj)
 
     # les trois derniers arguments peuvent ne pas être specifiés. valeurs par défaut: S, false, false (formulation forte, PLNE, modele bavard)
@@ -84,7 +99,6 @@ function heurGlou(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Ma
     z = opening_cost[j_min] + sum(nu[i] for i in 1:n)
     stop = false
     while !stop
-        println("S = ", S)
         sites = setdiff(1:m, S)
         Deltas = [opening_cost[j] - sum(partiePos(nu[i] - cost_connection[i,j]) for i in 1:n) for j in sites]
         j_min = argmin(Deltas) 
@@ -106,9 +120,9 @@ function main_heurGlou(n, m, opening_cost, cost_connection)
     println("cout heurGlou = ", z)
     println("capteurs heurGlou = ", S, "\n")
 
-    obj, temps, noeuds, x, y = PLS(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
-    println("cout PLS = ", obj)
-    println("capteurs PLS = ", [i for (i, value) in enumerate(y) if value >= 1e-5])
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
+    println("cout PL = ", obj)
+    println("capteurs PL = ", [i for (i, value) in enumerate(y) if value >= 1e-5])
 
     #verification heurGlou
     #res = sum(opening_cost[j] for j in S)
@@ -117,4 +131,68 @@ function main_heurGlou(n, m, opening_cost, cost_connection)
     #end
     #print("verification res = ", res)
 
+end
+
+function pipeline_heurGlou()
+    folder_path = "./data/"
+    output_file = "./src/resultats/groupe1/heurGlou.csv"
+
+    if isfile(output_file) 
+        println("fichier deja existant")
+        #result_df = CSV.read(output_file, DataFrame, types=String)
+        result_df = DataFrame(CSV.File(output_file))
+        files = setdiff(readdir(folder_path), result_df[:, "instance"])
+    else
+        result_df = DataFrame(instance = [], UB=[], LB=[], temps=[], sites=[])
+        files = readdir(folder_path)
+    end
+
+    for file in files 
+        n, m, opening_cost, cost_connection = read_data(folder_path * file)
+
+        start_time = time()
+        sites_heurGlou, v_obj_heurGlou, nu = heurGlou(n, m, opening_cost, cost_connection)
+        temps_heurGlou = time() - start_time
+
+        push!(result_df, (instance = file, UB = v_obj_heurGlou, LB= sum(nu[i] for i in 1:n), temps=temps_heurGlou,sites=sites_heurGlou))       
+        CSV.write(output_file, DataFrame(result_df))    
+    end
+end
+
+function vec_to_string(vector::Vector{Int})
+    str = join(string.(vector), ",")  # Convert each element of the vector to a string and join them with a comma and space separator
+    return "[$str]"  # Surround the resulting string with square brackets
+end
+
+function pipeline_PL(formulation::String = "W")
+    folder_path = "./data/"
+    output_file = "./src/resultats/groupe1/PL" * formulation * ".csv"
+
+    if isfile(output_file) 
+        println("fichier deja existant")
+        #result_df = CSV.read(output_file, DataFrame, types=String)
+        result_df = DataFrame(CSV.File(output_file))
+        result_df[!,:sites] = convert.( String255,result_df[!,:sites])
+        files = setdiff(readdir(folder_path), result_df[:, "instance"])
+    else
+        result_df = DataFrame(instance = [], obj=[], v_rel=[], gap = [], noeuds = [], temps=[], sites=[])
+        files = readdir(folder_path)
+    end
+    #files = ["instRand_100_100_1.txt", "instTest.txt"]
+    #files = []
+
+    for file in files 
+        n, m, opening_cost, cost_connection = read_data(folder_path * file)
+
+        v_rel, _, _, _, _, _ = PL(n, m, opening_cost, cost_connection, formulation =  formulation, pb_relache =  true, silence = false)   
+        obj, temps, noeuds, _, sites, gap = PL(n, m, opening_cost, cost_connection, formulation =  formulation, pb_relache =  false, silence = false)
+
+        push!(result_df, (instance = file, obj = obj, v_rel = v_rel, gap = gap, noeuds = noeuds, temps = temps, sites =vec_to_string(sites)))       
+        CSV.write(output_file, DataFrame(result_df))    
+    end
+end
+
+function main()
+    pipeline_PL("S")
+    pipeline_PL("W")
 end
