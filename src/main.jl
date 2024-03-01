@@ -20,8 +20,13 @@ end
 function main_grp3(filepath)
     # Execution du travail du groupe 3 : Problème de p-centres
     println("Résolution pour le fichier : $filepath")
-    n, m, opening_cost, cost_connection = read_data(filepath)
-    main_p_centres(n, m, cost_connection, 3)
+    if endswith(filepath, ".tsp")
+        n, m, distances = readInstance_tsp(filepath)
+        main_p_centres(n, m, distances, 5)
+    else
+        n, m, _, cost_connection = read_data(filepath)
+        main_p_centres(n, m, cost_connection, 5)
+    end
 end 
 
 function main_grp4(filepath)
@@ -37,23 +42,32 @@ function main_grp6(filepath)
 end 
 
 function main()
-    # Exemple d'utilisation avec le fichier "Example.txt"
-    n, m, opening_cost, cost_connection = read_data("data/instTest.txt")
+    # Problème de localisation simple
+    # # Exemple d'utilisation avec le fichier "Example.txt"
+    # n, m, opening_cost, cost_connection = read_data("data/instTest.txt")
 
-    # Affichage des résultats
-    println("n = $n") # nombre de clients
-    println("m = $m") # nombres de sites
-    println("Opening Cost : $opening_cost")
-    println("Cost Connection : $cost_connection")
-    println()
+    # # Affichage des résultats
+    # println("n = $n") # nombre de clients
+    # println("m = $m") # nombres de sites
+    # println("Opening Cost : $opening_cost")
+    # println("Cost Connection : $cost_connection")
+    # println()
 
-    # Execution du code du groupe 1
-    # main_grp1("data/instTest.txt")
+    # # Execution du code du groupe 1
+    # # main_grp1("data/instTest.txt")
 
-    # Execution du code du groupe 2
-    # main_grp2("data/instRand_50_50_1.txt")
+    # # Execution du code du groupe 2
+    # # main_grp2("data/instRand_50_50_1.txt")
+    
+
+    # Problème de P centres
+
+    # n, m, distances = readInstance_tsp("MLA_PROJET/tsp_data/dj38.tsp")
+    # println("n = m = $n") # nombre de sites
+    # println("Distances : $opening_cost")
 
     # Execution du code du groupe 3
+    # main_grp3("MLA_PROJET/tsp_data/dj38.tsp")
     main_grp3("data/instRand_50_50_1.txt")
 end
 

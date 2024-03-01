@@ -94,7 +94,7 @@ function one_centre_ub(n::Int, m::Int, cost_connection::Matrix{Int})
     return ub
 end
 
-function main_p_centres(n, m, cost_connection, nb_centres)
+function main_p_centres(n::Int, m::Int, cost_connection::Matrix{Int64}, nb_centres::Int)
     # exemples d'utilisation de PLS
     # formulation forte, pb relache, pas d'affichage
     println("\n")

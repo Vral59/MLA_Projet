@@ -45,3 +45,57 @@ function read_data(file_path)
     return n, m, opening_cost, cost_connection
 end
 
+function readInstance_tsp(path::String)
+    """
+    The parsing function for the TSP instance file
+    Encoding options are not read
+    """
+    name = ""
+    wtype = "round"
+    nnodes = 0
+    Abs = []
+    Ord = []
+    start_coords = false
+    open(path) do f
+        lines = readlines(f)
+        for line in lines
+            sline = split(line)
+            if sline[1] == "EOF"
+                break
+            elseif start_coords
+                p = parse(Int64, sline[1])
+                x = parse(Float64, sline[2])
+                y = parse(Float64, sline[3])
+                Abs=vcat(Abs,x)
+                Ord=vcat(Ord,y)
+            elseif sline[1] == "NAME"
+                name = sline[3]
+            elseif sline[1] == "DIMENSION"
+                nnodes = parse(Int64, sline[3])
+            elseif sline[1] == "EDGE_WEIGHT_TYPE"
+                if sline[3] == "EUC_2D"
+                    wtype = "round"
+                elseif sline[3] == "CEIL_2D"
+                    wtype = "ceil"
+                elseif sline[3] == "GEOM"
+                    wtype = "geom"
+                end
+            elseif sline[1] == "NODE_COORD_SECTION"
+                start_coords = true
+            end
+        end
+    end
+    println("instance file $name parsed successfully")
+    @assert length(Abs) == length(Ord)
+    n = length(Abs)
+    m = n
+    distance_matrix = zeros(Int64,n,n)
+    for i in 1:n
+        for j in 1:n
+            distance_matrix[i,j] = round(Int64,sqrt((Abs[i]-Abs[j])^2+(Ord[i]-Ord[j])^2))
+        end
+    end
+    return n, m, distance_matrix
+end
+
+
