@@ -1,8 +1,7 @@
 # Guillaume Casanova et Raphael Taisant
 # P-centres problems
 
-
-function solve_pc1(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int; relaxation::Bool=false, time_limit::Float64=0, verbose::Int=0)
+function solve_pc1(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int; relaxation::Bool=false, time_limit::Float64=0.0, verbose::Int=0)
     """Solve the p-centers problem with formulation PC1"""
     # n number of clients
     # m number of sites
@@ -12,7 +11,7 @@ function solve_pc1(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int
         set_silent(model)
     end
     if time_limit > 0
-        set_time_limit_sec(model, time_limit)
+        set_optimizer_attribute(model, "CPXPARAM_TimeLimit", time_limit)
     end
 
     @variable(model, x[1:n, 1:m] >= 0, Bin)
@@ -37,12 +36,22 @@ function solve_pc1(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int
     optimize!(model)
 
     n_variables = num_variables(model)
-    n_constraints = sum(num_constraints(model, F, S) for (F, S) in list_of_constraint_types(model))
+    n_constraints = num_constraints(model; count_variable_in_set_constraints=false) # Count only structural constraints
 
-    return objective_value(model), solve_time(model), node_count(model), value.(x), value.(y), n_variables, n_constraints, objective_bound(model)
+    status = termination_status(model)
+    @assert status == MOI.OPTIMAL || status == MOI.TIME_LIMIT
+
+    obj, x_val, y_val = missing, missing, missing
+    if primal_status(model) == MOI.FEASIBLE_POINT
+        obj = objective_value(model)
+        x_val, y_val = value.(x), value.(y)
+    end
+    lb = missing
+    try lb = objective_bound(model) catch end
+    return obj, solve_time(model), node_count(model), x_val, y_val, n_variables, n_constraints, lb
 end
 
-function solve_pc(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int; relaxation::Bool=false,  time_limit::Float64=0, verbose::Int=0)
+function solve_pc(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int; relaxation::Bool=false,  time_limit::Float64=0.0, verbose::Int=0)
     """Solve the p-centers problem with formulation PC1"""
     # n number of clients
     # m number of sites
@@ -52,7 +61,7 @@ function solve_pc(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int;
         set_silent(model)
     end
     if time_limit > 0
-        set_time_limit_sec(model, time_limit)
+        set_optimizer_attribute(model, "CPXPARAM_TimeLimit", time_limit)
     end
 
     @variable(model, x[1:n, 1:m] >= 0, Bin)
@@ -77,9 +86,19 @@ function solve_pc(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int;
     optimize!(model)
 
     n_variables = num_variables(model)
-    n_constraints = sum(num_constraints(model, F, S) for (F, S) in list_of_constraint_types(model))
+    n_constraints = num_constraints(model; count_variable_in_set_constraints=false) # Count only structural constraints
 
-    return objective_value(model), solve_time(model), node_count(model), value.(x), value.(y), n_variables, n_constraints, objective_bound(model)
+    status = termination_status(model)
+    @assert status == MOI.OPTIMAL || status == MOI.TIME_LIMIT
+
+    obj, x_val, y_val = missing, missing, missing
+    if primal_status(model) == MOI.FEASIBLE_POINT
+        obj = objective_value(model)
+        x_val, y_val = value.(x), value.(y)
+    end
+    lb = missing
+    try lb = objective_bound(model) catch end
+    return obj, solve_time(model), node_count(model), x_val, y_val, n_variables, n_constraints, lb
 end
 
 function lower_bound_0(n::Int, m::Int, cost_connection::Matrix{Int})
@@ -166,16 +185,21 @@ function main_p_centres(n::Int, m::Int, cost_connection::Matrix{Int64}, nb_centr
     println("\n")
     println("Valeur de la borne inférieure = ", lower_bound_0(n, m, cost_connection), "\n")
     println("Valeur de la borne supérieure obtenue avec 1 centre = ", one_centre_ub(n, m, cost_connection), "\n")
-    obj, temps, noeuds, x, y, _, _, _ = solve_pc1(n, m, cost_connection, nb_centres, relaxation =  true, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y, _, _, _ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60, verbose = 0)
     println("Valeur relaxation formulation PC1 = ", obj, ", obtenue en ", temps, "s", "\n")
-    obj, temps, noeuds, x, y, _,_,_ = solve_pc1(n, m, cost_connection, nb_centres, relaxation =  false, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y, _,_,_ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60, verbose = 0)
     println("Valeur formulation PC1 = ", obj,  ", obtenue en ", temps, "s","\n")
-    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres, relaxation =  true, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60, verbose = 0)
     println("Valeur relaxation formulation PC = ", obj, ", obtenue en ", temps, "s", "\n")
-    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres, relaxation =  false, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60, verbose = 0)
     println("Valeur formulation PC = ", obj, ", obtenue en ", temps, "s", "\n")
-    temps = @elapsed obj, x, y = solve_greedy(n, m, cost_connection, nb_centres, verbose = 1)
+    temps = @elapsed obj, x, y = solve_greedy(n, m, cost_connection, nb_centres; verbose = 1)
     println("Valeur heuristique greedy = ", obj, ", obtenue en ", temps, "s", "\n")
+end
+
+function format_df_line(entry, p, method, obj, lb, time, n_nodes, root_obj, n_variables, n_constraints)
+    """Return a formated DataFrame line"""
+    return (entry, p, method, round(obj, digits=1), round(lb, digits=1), round(time, digits=3), n_nodes, round(root_obj, digits=1), n_variables, n_constraints)
 end
 
 function benchmark_grp3()
@@ -187,7 +211,12 @@ function benchmark_grp3()
     columns = ["instance", "p", "method", "obj", "bound", "time", "n_nodes", "root_obj", "n_variables", "n_constraints"]
     data = []
     for entry in readdir(repo_path)
-        # entry = "dj38.tsp"
+        dim = parse(Int64, filter(isdigit, entry))
+        if dim > 1000
+            println("Skipping $entry, too large")
+            continue
+        end
+
         fullpath = joinpath(repo_path, entry)
         if isfile(fullpath)
             println("Résolution pour le fichier : $fullpath")
@@ -196,34 +225,40 @@ function benchmark_grp3()
 
         for p in ps
             if p > n
-                break
+                continue
             end
 
             # PC1
             println("PC1 relax")
-            root_obj, _, _, _, _, _, _,_ = solve_pc1(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
+            @time root_obj, _, _, _, _, _, n_variables, n_constraints = solve_pc1(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
             println("PC1")
-            obj, time, n_nodes, _, _, n_variables, n_constraints, lb = solve_pc1(n, m, distances, p, relaxation = false, time_limit=time_lim, verbose = 0)
-            push!(data, (entry, p, "PC1", round(obj, digits=1), round(lb, digits=1), round(time, digits=3),
-                n_nodes, round(root_obj, digits=1), n_variables, n_constraints))
+            if !ismissing(root_obj)
+                @time obj, time, n_nodes, _, _, _, _, lb = solve_pc1(n, m, distances, p, relaxation = false, time_limit=time_lim, verbose = 0)
+                push!(data, format_df_line(entry, p, "PC1", obj, lb, time, n_nodes, root_obj, n_variables, n_constraints))
+            else
+                println("Skipping PC1 computation, the relaxation could not be solved in time")
+                push!(data, format_df_line(entry, p, "PC1", missing, missing, time_lim, missing, missing, n_variables, n_constraints))
+            end
+            
             
             # PC
             println("PC relax")
-            root_obj, _, _, _, _, _, _,_ = solve_pc(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
+            @time root_obj, _, _, _, _, _, _,_ = solve_pc(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
             println("PC")
-            obj, time, n_nodes, _, _, n_variables, n_constraints, lb = solve_pc(n, m, distances, p, relaxation = false, time_limit=time_lim, verbose = 0)
-            push!(data, (entry, p, "PC", round(obj, digits=1), round(lb, digits=1), round(time, digits=3),
-                n_nodes, round(root_obj, digits=1), n_variables, n_constraints))
-            
+            if !ismissing(root_obj)
+                @time obj, time, n_nodes, _, _, n_variables, n_constraints, lb = solve_pc(n, m, distances, p, relaxation = false, time_limit=time_lim, verbose = 0)
+                push!(data, format_df_line(entry, p, "PC", obj, lb, time, n_nodes, root_obj, n_variables, n_constraints))
+            else
+                println("Skipping PC computation, the relaxation could not be solved in time")
+                push!(data, format_df_line(entry, p, "PC1", missing, missing, time_lim, missing, missing, n_variables, n_constraints))
+            end
             # Greedy
             println("Greedy")
             time = @elapsed obj, _, _,= solve_greedy(n, m, distances, p, verbose = 0)
-            push!(data, (entry, p, "Greedy", round(obj, digits=1), round(obj, digits=1), round(time, digits=3),
-                0, 0, 0, 0))
+            push!(data, format_df_line(entry, p, "Greedy", obj, missing, time, missing, missing, missing, missing))
 
             df = DataFrame(data, columns)
             CSV.write("results/benchmark_grp3_.csv", df)
         end
-        break
     end
 end
