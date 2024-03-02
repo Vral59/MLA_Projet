@@ -85,7 +85,6 @@ function readInstance_tsp(path::String)
             end
         end
     end
-    println("instance file $name parsed successfully")
     @assert length(Abs) == length(Ord)
     n = length(Abs)
     m = n
@@ -95,6 +94,7 @@ function readInstance_tsp(path::String)
             distance_matrix[i,j] = round(Int64,sqrt((Abs[i]-Abs[j])^2+(Ord[i]-Ord[j])^2))
         end
     end
+    println("instance file $name parsed successfully")
     return n, m, distance_matrix
 end
 
