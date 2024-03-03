@@ -19,10 +19,10 @@ function solve_pc1(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int
     @variable(model, r>=0)
 
     @constraint(model, [i in 1:n, j in 1:m], x[i,j] <= y[j])
-    @constraint(model, [i in 1:n], sum(x[i,j] for j in 1:m)  == 1)
+    @constraint(model, [i in 1:n], sum(x[i,:])  == 1)
 
     # p centres
-    @constraint(model, sum(y[j] for j in 1:m) == nb_centres)
+    @constraint(model, sum(y) == nb_centres)
 
     # bound on r in PC1
     @constraint(model, [i in 1:n, j in 1:m], cost_connection[i,j] * x[i,j] <= r)
@@ -69,13 +69,13 @@ function solve_pc(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int;
     @variable(model, r>=0)
 
     @constraint(model, [i in 1:n, j in 1:m], x[i,j] <= y[j])
-    @constraint(model, [i in 1:n], sum(x[i,j] for j in 1:m)  == 1)
+    @constraint(model, [i in 1:n], sum(x[i,:])  == 1)
 
     # p centres
-    @constraint(model, sum(y[j] for j in 1:m) == nb_centres)
+    @constraint(model, sum(y) == nb_centres)
 
     # bound on r in PC1
-    @constraint(model, [i in 1:n], sum(cost_connection[i,j] * x[i,j] for j in 1:m)<= r)
+    @constraint(model, [i in 1:n], sum(cost_connection[i,:] .* x[i,:]) <= r)
 
     @objective(model, Min, r)
 
@@ -185,13 +185,13 @@ function main_p_centres(n::Int, m::Int, cost_connection::Matrix{Int64}, nb_centr
     println("\n")
     println("Valeur de la borne inférieure = ", lower_bound_0(n, m, cost_connection), "\n")
     println("Valeur de la borne supérieure obtenue avec 1 centre = ", one_centre_ub(n, m, cost_connection), "\n")
-    obj, temps, noeuds, x, y, _, _, _ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y, _, _, _ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60., verbose = 0)
     println("Valeur relaxation formulation PC1 = ", obj, ", obtenue en ", temps, "s", "\n")
-    obj, temps, noeuds, x, y, _,_,_ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y, _,_,_ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60., verbose = 0)
     println("Valeur formulation PC1 = ", obj,  ", obtenue en ", temps, "s","\n")
-    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60., verbose = 0)
     println("Valeur relaxation formulation PC = ", obj, ", obtenue en ", temps, "s", "\n")
-    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60, verbose = 0)
+    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60., verbose = 0)
     println("Valeur formulation PC = ", obj, ", obtenue en ", temps, "s", "\n")
     temps = @elapsed obj, x, y = solve_greedy(n, m, cost_connection, nb_centres; verbose = 1)
     println("Valeur heuristique greedy = ", obj, ", obtenue en ", temps, "s", "\n")
@@ -204,7 +204,7 @@ end
 
 function benchmark_grp3()
     repo_path = "tsp_data"
-    time_lim = 60.0
+    time_lim = 180.0
 
     ps = [5, 10, 20, 50]
 
@@ -230,10 +230,10 @@ function benchmark_grp3()
 
             # PC1
             println("PC1 relax")
-            @time root_obj, _, _, _, _, _, n_variables, n_constraints = solve_pc1(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
+            @time root_obj, _, _, _, _, n_variables, n_constraints, _ = solve_pc1(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
             println("PC1")
             if !ismissing(root_obj)
-                @time obj, time, n_nodes, _, _, _, _, lb = solve_pc1(n, m, distances, p, relaxation = false, time_limit=time_lim, verbose = 0)
+                @time obj, time, n_nodes, _, _, n_variables, n_constraints, lb = solve_pc1(n, m, distances, p, relaxation = false, time_limit=time_lim, verbose = 0)
                 push!(data, format_df_line(entry, p, "PC1", obj, lb, time, n_nodes, root_obj, n_variables, n_constraints))
             else
                 println("Skipping PC1 computation, the relaxation could not be solved in time")
@@ -243,14 +243,14 @@ function benchmark_grp3()
             
             # PC
             println("PC relax")
-            @time root_obj, _, _, _, _, _, _,_ = solve_pc(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
+            @time root_obj, _, _, _, _, n_variables, n_constraints,_ = solve_pc(n, m, distances, p, relaxation = true, time_limit=time_lim, verbose = 0)
             println("PC")
             if !ismissing(root_obj)
                 @time obj, time, n_nodes, _, _, n_variables, n_constraints, lb = solve_pc(n, m, distances, p, relaxation = false, time_limit=time_lim, verbose = 0)
                 push!(data, format_df_line(entry, p, "PC", obj, lb, time, n_nodes, root_obj, n_variables, n_constraints))
             else
                 println("Skipping PC computation, the relaxation could not be solved in time")
-                push!(data, format_df_line(entry, p, "PC1", missing, missing, time_lim, missing, missing, n_variables, n_constraints))
+                push!(data, format_df_line(entry, p, "PC", missing, missing, time_lim, missing, missing, n_variables, n_constraints))
             end
             # Greedy
             println("Greedy")
