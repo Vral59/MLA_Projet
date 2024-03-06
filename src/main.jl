@@ -4,6 +4,10 @@ include("groupes/groupe2.jl")
 include("groupes/groupe3.jl")
 include("groupes/groupe4.jl")
 include("groupes/groupe5.jl")
+include("groupes/groupe6.jl")
+include("groupes/groupe7.jl")
+include("groupes/groupe8.jl")
+include("groupes/groupe9.jl")
 
 
 function main_grp1(filepath)
@@ -47,6 +51,17 @@ function main_grp6(filepath)
     # Execution du travail du groupe 6
 end
 
+function main_grp7(filepath)
+    # Execution du travail du groupe 7
+end
+
+function main_grp8(filepath)
+    # Execution du travail du groupe 8
+end
+
+function main_grp9(filepath)
+    # Execution du travail du groupe 9
+end
 
 function main()
     # Problème de localisation simple
@@ -80,6 +95,14 @@ function main()
 
     # # Execution du code du groupe 5
     # main_grp5("data/instTest.txt")
+
+    # Execution du code du groupe 6
+
+    # Execution du code du groupe 7
+
+    # Execution du code du groupe 8
+
+    # Execution du code du groupe 9
 
 end
 
