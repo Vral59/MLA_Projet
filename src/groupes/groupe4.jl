@@ -64,7 +64,7 @@ end
 
 
 
-function NPC(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = false)
+function NPCi(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = false)
     """formulation NPC"""
     # n nombre de clients
     # m nombre de sites
@@ -80,13 +80,15 @@ function NPC(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = fal
         set_silent(model)
     end
 
-    @variable(model, z[1:(K-1)], Bin)
+    @variable(model, z[1:K], Bin)
     @variable(model, y[1:m], Bin)
 
     
     @constraint(model, [i in 1:n], sum(y[j] for j in 1:m)  == p)
     
-    @constraint(model, [i in 1:n, k in 1:(K-1)], z[k]+sum(y[j] for j in 1:m if distances[i,j]<=D[k])  >= 1)
+    @constraint(model, [i in 1:n, k in 1:K], z[k]+sum(y[j] for j in 1:m if distances[i,j]<=D[k])  >= 1)
+
+    @constraint(model, [k in 1:(K-1)], z[k] >= z[k+1])
 
 
 
