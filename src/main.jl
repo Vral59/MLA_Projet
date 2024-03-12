@@ -80,7 +80,7 @@ function main()
 
     # Execution du code du groupe 2
     # main_grp2("data/instTest.txt")
-    # benchmark_grp2()
+    benchmark_grp2()
 
 
     # Problème de P centres
@@ -91,7 +91,7 @@ function main()
 
     # Execution du code du groupe 3
     # main_grp3("tsp_data/dj38.tsp")
-    benchmark_grp3()
+    # benchmark_grp3()
 
     # # Execution du code du groupe 5
     # main_grp5("data/instTest.txt")

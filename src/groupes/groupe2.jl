@@ -8,14 +8,30 @@ using DataFrames
 include("../readData.jl")
 
 
+hard_instances_benoit = [
+    "ga250a-3",
+    "ga250a-4",
+    "ga250a-5",
+    "instC1.txt",
+]
+
+hard_instances_justin = [
+    "gs250a-3",
+    "gs250a-5",
+    "instC2.txt",
+    "instC3.txt",
+]
+
+
 function benchmark_grp2()
     repo_path = "data"
-    time_limit = 60
+    time_limit = 3600
     silence = false
 
     columns = ["instance", "method", "obj", "bound", "time", "n_nodes",  "root_obj", "root_bound", "n_variables", "n_constraints"]
     data = []
-    for entry in readdir(repo_path)
+    # for entry in readdir(repo_path)
+    for entry in hard_instances_benoit
         fullpath = joinpath(repo_path, entry)
         if isfile(fullpath)
             println("Résolution pour le fichier : $fullpath")
@@ -24,8 +40,9 @@ function benchmark_grp2()
 
         # Formulation alternative
         println("\nFormulation alternative relachée")
-        root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
-        cost_connection, pb_relache = true, silence = silence, time_limit = time_limit)
+        # root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
+        #     cost_connection, pb_relache = true, silence = silence, time_limit = time_limit)
+        root_obj, root_bound = -1, -1
 
         println("\nFormulation alternative exacte")
         obj, bound, time, n_nodes, n_variables, n_constraints = PLS_bis(n, m, opening_cost,
@@ -35,8 +52,9 @@ function benchmark_grp2()
 
         # Formulation alternative variante
         println("\nFormulation alternative variante relachée")
-        root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
-        cost_connection, pb_relache = true, variante = true, silence = silence, time_limit = time_limit)
+        # root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
+        #     cost_connection, pb_relache = true, variante = true, silence = silence, time_limit = time_limit)
+        root_obj, root_bound = -1, -1
 
         println("\nFormulation alternative variante exacte")
         obj, bound, time, n_nodes, n_variables, n_constraints = PLS_bis(n, m, opening_cost,
@@ -45,7 +63,7 @@ function benchmark_grp2()
             n_nodes, round(root_obj, digits=1), round(root_bound, digits=1), n_variables, n_constraints))
 
         df = DataFrame(data, columns)
-        CSV.write("results/benchmark_grp2_.csv", df)
+        CSV.write("results/benchmark_grp2_1hour_benoit.csv", df)
     end
 
 end
@@ -114,7 +132,7 @@ function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Mat
 
     sorted_distances = map(i -> sort(unique(cost_connection[i, :])), 1:n)
     max_distinct_distances = maximum(length.(sorted_distances))
-    # Les matrices sont plus faciles à manipuler que les tableaux de tableaux
+    # Les matrices sont plus faciles à manipuler qu'un dictionnaire de tableaux
     sorted_distances_array = 1e8 * ones(Int, n, max_distinct_distances)
     for i in 1:n
         sorted_distances_array[i, 1:length(sorted_distances[i])] = sorted_distances[i]
@@ -126,8 +144,6 @@ function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Mat
     @constraint(model, [i in 1:n], z[i,1] + sum(y.*(cost_connection[i,:] .== sorted_distances_array[i,1])) >= 1)
 
     if variante
-        # On a essayé de vectoriser ces expression pour gagner en performance sans réussir 
-        # Donc construire des gros problèmes prend du temps (double boucle sur i et k)
         @constraint(model, [i in 1:n, k in 2:max_distinct_distances],
             z[i,k] - z[i,k-1] + sum(y.*(cost_connection[i,:] .== sorted_distances_array[i,k])) >= 0)
     else
@@ -137,10 +153,10 @@ function PLS_bis(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Mat
     @constraint(model, [i in 1:n], z[i, length(sorted_distances[i]):end] .== 0)
 
     opening_cost_value = sum(opening_cost.*y)
-    assignation_cost = begin
-        sum(sorted_distances_array[:,1]) 
+    assignation_cost = (
+        sum(sorted_distances_array[:,1])
         + sum(z[:, 1:end-1] .* (sorted_distances_array[:, 2:end] .- sorted_distances_array[:, 1:end-1]))
-    end
+    )
     total_cost = opening_cost_value + assignation_cost
     @objective(model, Min, total_cost)
 
