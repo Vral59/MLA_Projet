@@ -29,64 +29,73 @@ function phase1(n::Int, m::Int, f::Vector{Int}, c::Matrix{Int})::Tuple{Vector{In
     x = zeros(Int, n, m)
     y = zeros(Int, m)
 
-    # Matrix to identify the indices i,j s.t. v_i = w_i,j should be maintained.
-    relation_maintained = zeros(Int, n, m)
+    f_residual = [f[j] for j = 1:m]
 
-    all_affected = false
-    while !all_affected
+    non_affected = n
 
-        # 1. v_i = c_i,j and facility j is open.
+    while non_affected > 0
+
         for i = 1:n
-            for j = 1:m
-                if v[i] == c[i,j] && y[j] == 1
-                    # Affect i to j.
-                    x[i,j] = 1
-                end
-            end
-        end
 
-        # 2. v_i = c_i,j and facility j is closed.
-        for i = 1:n
-            for j = 1:m
-                if v[i] == c[i,j] && y[j] == 0
-                    # Maintain v_i = w_i,j.
-                    relation_maintained[i,j] = 1
-                end
-            end
-        end
-
-        # 3. sum(w_i,j) = f_j for facility j.
-        for j = 1:m
-            if sum(w[:,j]) == f[j]
-                # Open facility j.
-                y[j] = 1
-
-                for i = 1:n
-                    if sum(x[i,:]) == 0 && v[i] >= c[i,j]
-                        # Affect the non-affected clients s.t. v_i >= c_i,j.
-                        x[i,j] = 1
+            if sum(x[i,:]) == 0 # non-affected client, check if condition 1. is satisfied
+                for j = 1:m
+                    if y[j] == 1 && v[i] == c[i,j]
+                        x[i,j] = 1 
                     end
                 end
-
+                if sum(x[i,:]) >= 1 # if the client is now affected to one (or more) site
+                    non_affected -=1
+                end
             end
-        end
 
-        # Check if all clients are affected and modify v if not.
-        all_affected = true
-        for i = 1:n
-            if sum(x[i,:]) == 0
-                # Client i is not affected.
-                all_affected = false
-                # Increase v_i.
-                v[i] += 1
+            if sum(x[i,:]) == 0  # still a non-affected client
+
+                v[i] += 1  # Increase v[i]
+
                 for j = 1:m 
-                    # Increase w_i,j for all the facilities j considered in step 2.
-                    if relation_maintained[i,j] == 1
-                        w[i,j] += 1
+
+                    # This block is useful only when f[j] = 0. Then,  3. is satisfied right away -> open j.
+                    if f_residual[j] == 0
+                        y[j] = 1
+                        for i_prime = 1:n
+                            if sum(x[i_prime,:]) == 0  && v[i_prime] >= c[i_prime,j]
+                                x[i_prime, j] = 1
+                                non_affected -=1
+                                if non_affected == 0
+                                    break       
+                                end
+                            end
+                        end
                     end
-                end
-            end
+
+                    if y[j] == 0 
+
+                        if v[i] > c[i,j] && f_residual[j] >= 1 # Condition 2. implies than w[i,j] should be incremented
+
+                            w[i,j] += 1
+                            f_residual[j] -= 1
+
+                            if f_residual[j] == 0 # Condition 3. is satisfied, open j
+                                y[j] = 1
+                                for i_prime = 1:n
+                                    if sum(x[i_prime,:]) == 0  && v[i_prime] >= c[i_prime,j] 
+                                        x[i_prime, j] = 1
+                                        non_affected -=1
+                                        if non_affected == 0
+                                            break       
+                                        end
+                                    end
+                                end
+                            end 
+
+                        end 
+                    end 
+                end 
+
+            end 
+            
         end
+
     end
 
     return v, w, x, y
