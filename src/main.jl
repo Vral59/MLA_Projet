@@ -49,6 +49,9 @@ end
 
 function main_grp6(filepath)
     # Execution du travail du groupe 6
+    println("Résolution pour le fichier : $filepath")
+    n, m, opening_cost, cost_connection = read_data(filepath)
+    main_stable(n, m, cost_connection)
 end
 
 function main_grp7(filepath)
@@ -80,7 +83,7 @@ function main()
 
     # Execution du code du groupe 2
     # main_grp2("data/instTest.txt")
-    benchmark_grp2()
+    # benchmark_grp2()
 
 
     # Problème de P centres
@@ -97,6 +100,7 @@ function main()
     # main_grp5("data/instTest.txt")
 
     # Execution du code du groupe 6
+    main_grp6("data/instRand_100_100_1.txt")
 
     # Execution du code du groupe 7
 
