@@ -130,6 +130,25 @@ function set_cover_arrondi(distances::Matrix{Int},δ::Int)
 
 end
 
+"""Heuristique d'arrondi simple pour le problème de set cover."""
+function set_cover_arrondi_simple(distances::Matrix{Int},δ::Int)
+    _,y = set_cover(distances,δ,true)
+
+    n,m = size(distances)
+    argmaxy = ones(Int,n)
+    for i in 1:n
+        for j in 1:m
+            if distances[i,j] ≤ δ
+                if y[j] > argmaxy[i]
+                    argmaxy[i] = j
+                end
+            end
+        end
+        y[argmax[i]] = 1
+    end
+    return sum(y),y
+end
+
 """Heuristique d'arrondi pour le problème de set cover."""
 function set_cover_arrondi(distances::Matrix{Int},δ::Int)
     _,y = set_cover(distances,δ,true)
