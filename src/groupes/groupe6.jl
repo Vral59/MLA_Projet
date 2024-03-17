@@ -112,8 +112,13 @@ function set_cover(distances::Matrix{Int},δ::Int)
 
     optimize!(model)
 
-    return objective_value(model),value.(y)
+    if primal_status(model) == FEASIBLE_POINT
+        return objective_value(model),value.(y)
+    else
+        return Inf,zeros(m)
+    end
 end
+
 """Résout la relaxation continue du problème de set cover en O(mn²)"""
 function set_cover_relax(distances::Matrix{Int},δ::Int)
     n,m = size(distances)
@@ -129,25 +134,29 @@ function set_cover_relax(distances::Matrix{Int},δ::Int)
     end
     b = ones(n)
     y = zeros(m)
-    nbunassigned = m
 
-    while nbunassigned ≠ 0
-        i = argmin(ii -> setsize[ii] / b[ii],1:n)
-        nbunassigned -= setsize[i]
-        v = b[i] / setsize[i]
+    i = argmin(ii -> setsize[ii] / b[ii],1:n)
+    v = b[i] / setsize[i]
+    if isinf(v)
+        return v,y
+    end
+    while v > 0
         for j in 1:m
             if A[i,j]
                 y[j] = v
                 for ii in 1:n
                     if A[ii,j]
+                        A[ii,j] = false
                         setsize[ii] -= 1
                         b[ii] -= v
-                        A[ii,j] = false
+                        if b[ii] < 0 b[ii] = 0 end
                     end
                 end
             end
         end
-        setsize[i] = 1
+        replace!(s -> s == 0 ? 1 : s,setsize)
+        i = argmin(ii -> setsize[ii] / b[ii],1:n)
+        v = b[i] / setsize[i]
     end
     return sum(y),y
 end
