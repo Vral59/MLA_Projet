@@ -97,8 +97,9 @@ function creation_graphe_Gp(n::Int, m::Int, cost_connection::Matrix{Int}, delta:
     return Arcs_Gp
 end
 
-"""Résout le problème de set cover."""
-function set_cover(distances::Matrix{Int},δ::Int)
+"""Résout le problème de set cover.\\
+   relax::Bool - Si l'on doit résoudre la relaxation continue uniquement"""
+function set_cover(distances::Matrix{Int},δ::Int,relax=false)
     n,m = size(distances)
 
     model = Model(CPLEX.Optimizer)
@@ -110,6 +111,10 @@ function set_cover(distances::Matrix{Int},δ::Int)
 
     @objective(model,MIN_SENSE,sum(y))
 
+    if relax
+        relax_integrality(model)
+    end
+
     optimize!(model)
 
     if primal_status(model) == FEASIBLE_POINT
@@ -119,8 +124,14 @@ function set_cover(distances::Matrix{Int},δ::Int)
     end
 end
 
-"""Résout la relaxation continue du problème de set cover en O(mn²)"""
-function set_cover_relax(distances::Matrix{Int},δ::Int)
+"""Heuristique d'arrondi pour le problème de set cover."""
+function set_cover_arrondi(distances::Matrix{Int},δ::Int)
+    _,y = set_cover(distances,δ,true)
+
+end
+
+"""Heuristique pour le problème de set cover en O(mn²)"""
+function set_cover_heuristique(distances::Matrix{Int},δ::Int)
     n,m = size(distances)
     A = falses(n,m)
     setsize = zeros(Int,n)
@@ -136,14 +147,15 @@ function set_cover_relax(distances::Matrix{Int},δ::Int)
     y = zeros(m)
 
     i = argmin(ii -> setsize[ii] / b[ii],1:n)
-    v = b[i] / setsize[i]
-    if isinf(v)
-        return v,y
+    if setsize[i] == 0
+        return Inf,y
     end
-    while v > 0
-        for j in 1:m
+    while b[i] > 0
+        j_order = sortperm(y)
+        for j in j_order
             if A[i,j]
-                y[j] = v
+                y[j] = b[i]
+                v = b[i]
                 for ii in 1:n
                     if A[ii,j]
                         A[ii,j] = false
@@ -156,7 +168,6 @@ function set_cover_relax(distances::Matrix{Int},δ::Int)
         end
         replace!(s -> s == 0 ? 1 : s,setsize)
         i = argmin(ii -> setsize[ii] / b[ii],1:n)
-        v = b[i] / setsize[i]
     end
     return sum(y),y
 end
