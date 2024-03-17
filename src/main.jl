@@ -1,3 +1,6 @@
+import Pkg
+Pkg.activate(".") # C'est mieux de pas polluer l'environnement de base
+
 include("readData.jl")
 include("groupes/groupe1.jl")
 include("groupes/groupe2.jl")

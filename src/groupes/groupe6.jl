@@ -96,3 +96,58 @@ function creation_graphe_Gp(n::Int, m::Int, cost_connection::Matrix{Int}, delta:
     end
     return Arcs_Gp
 end
+
+"""Résout le problème de set cover."""
+function set_cover(distances::Matrix{Int},δ::Int)
+    n,m = size(distances)
+
+    model = Model(CPLEX.Optimizer)
+    set_silent(model)
+
+    @variable(model,y[1:m],Bin)
+
+    @constraint(model,[i in 1:n],sum(y[j] for j in 1:m if distances[i,j] ≤ δ) ≥ 1)
+
+    @objective(model,MIN_SENSE,sum(y))
+
+    optimize!(model)
+
+    return objective_value(model),value.(y)
+end
+"""Résout la relaxation continue du problème de set cover en O(mn²)"""
+function set_cover_relax(distances::Matrix{Int},δ::Int)
+    n,m = size(distances)
+    A = falses(n,m)
+    setsize = zeros(Int,n)
+    for j in 1:m
+        for i in 1:n
+            if distances[i,j] ≤ δ
+                A[i,j] = true
+                setsize[i] += 1
+            end
+        end
+    end
+    b = ones(n)
+    y = zeros(m)
+    nbunassigned = m
+
+    while nbunassigned ≠ 0
+        i = argmin(ii -> setsize[ii] / b[ii],1:n)
+        nbunassigned -= setsize[i]
+        v = b[i] / setsize[i]
+        for j in 1:m
+            if A[i,j]
+                y[j] = v
+                for ii in 1:n
+                    if A[ii,j]
+                        setsize[ii] -= 1
+                        b[ii] -= v
+                        A[ii,j] = false
+                    end
+                end
+            end
+        end
+        setsize[i] = 1
+    end
+    return sum(y),y
+end
