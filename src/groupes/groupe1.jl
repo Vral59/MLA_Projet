@@ -1,12 +1,17 @@
 # Valentin et Agathe
 
+# Valentin et Agathe
+
 using JuMP
 using CPLEX
+using DataFrames
+using CSV
 using DataFrames
 using CSV
 include("../readData.jl")
 
 
+function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int}; formulation::String = "S", pb_relache::Bool = false, silence::Bool = false)
 function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int}; formulation::String = "S", pb_relache::Bool = false, silence::Bool = false)
     # n nombre de sites
     # m le nombre de clients
@@ -18,6 +23,8 @@ function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{I
     if silence
         set_silent(model)
     end
+    set_time_limit_sec(model, 600)
+    MOI.set(model, MOI.NumberOfThreads(), 1)
     set_time_limit_sec(model, 600)
     MOI.set(model, MOI.NumberOfThreads(), 1)
 
@@ -60,24 +67,41 @@ function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{I
         end
         return objective_value(model), solve_time(model), node_count(model), value.(x), sites, gap
     end
+    sites = [i for i in 1:m if value(y[i]) > 1e-5]
+
+    feasibleSolutionFound = primal_status(model) == MOI.FEASIBLE_POINT
+    if feasibleSolutionFound
+        if !pb_relache
+            gap = MOI.get(model, MOI.RelativeGap())
+        else 
+            gap = 0
+        end
+        return objective_value(model), solve_time(model), node_count(model), value.(x), sites, gap
+    end
 end
 
 
 function main_PL(n, m, opening_cost, cost_connection)
     # exemples d'utilisation de PL
+function main_PL(n, m, opening_cost, cost_connection)
+    # exemples d'utilisation de PL
     # formulation forte, pb relache, pas d'affichage
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  true, silence = true)
     obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  true, silence = true)
     println("Valeur relaxation formulation forte = ", obj, "\n \n")
 
     # formulation faible, pb relache, pas d'affichage
     obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  true, silence = true)
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  true, silence = true)
     println("Valeur relaxation formulation faible = ", obj, "\n \n")
 
     # formulation forte, PLNE, pas d'affichage
     obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
     println("Valeur formulation forte = ", obj, "\n \n")
     
     # formulation faible, PLNE, pas d'affichage
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  false, silence = true)
     obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "W", pb_relache =  false, silence = true)
     println("Valeur formulation faible = ", obj)
 
@@ -120,6 +144,9 @@ function main_heurGlou(n, m, opening_cost, cost_connection)
     println("cout heurGlou = ", z)
     println("capteurs heurGlou = ", S, "\n")
 
+    obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
+    println("cout PL = ", obj)
+    println("capteurs PL = ", [i for (i, value) in enumerate(y) if value >= 1e-5])
     obj, temps, noeuds, x, y = PL(n, m, opening_cost, cost_connection, formulation =  "S", pb_relache =  false, silence = true)
     println("cout PL = ", obj)
     println("capteurs PL = ", [i for (i, value) in enumerate(y) if value >= 1e-5])
