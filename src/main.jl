@@ -54,7 +54,9 @@ function main_grp6(filepath)
     # Execution du travail du groupe 6
     println("Résolution pour le fichier : $filepath")
     n, m, opening_cost, cost_connection = read_data(filepath)
-    main_stable(n, m, cost_connection)
+    p = 2
+    println("main_stable: ",main_stable(n, m, cost_connection,p))
+    println("resol_p_centre_set_cover: ",resol_p_centre_set_cover(cost_connection,p,maximum(cost_connection))[1])
 end
 
 function main_grp7(filepath)

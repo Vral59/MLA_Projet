@@ -256,15 +256,6 @@ function resol_p_centre_set_cover(distances::Matrix{Int},p::Int,UB::Int)
     return OPT,y
 end
 
-"""Résout le problème de p-centre à l'aide d'une série de problèmes de set cover.\\
-   Part de la borne supérieure correspondant au maximum des distances."""
-function resol_p_centre_set_cover(distances::Matrix{Int},p::Int)
-    n,m = size(distances)
-    # UB = min(3 * main_stable(n,m,distances,p), maximum(distances))
-    UB = maximum(distances)
-    return resol_p_centre_set_cover(distances,p,UB)
-end
-
 ############ REMOVE BELOW
 
 function resol_p_centre_set_cover_bounds(distances::Matrix{Int},p::Int,UB::Int,phase2::Bool)
