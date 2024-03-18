@@ -2,9 +2,7 @@
 using JuMP
 using CPLEX
 
-function main_stable(n::Int, m::Int, cost_connection::Matrix{Int})
-    p=2 #Nombre de sites à ouvrir (pas dans les données)
-
+function main_stable(n::Int, m::Int, cost_connection::Matrix{Int},p::Int)
     distances_K_D = distances_triées(n::Int, m::Int, cost_connection)
     K, D = distances_K_D[1], distances_K_D[2]
     kup=K
@@ -98,7 +96,7 @@ function creation_graphe_Gp(n::Int, m::Int, cost_connection::Matrix{Int}, delta:
 end
 
 """Résout le problème de set cover.\\
-   relax::Bool - Si l'on doit résoudre la relaxation continue uniquement"""
+   `relax::Bool` - Si l'on doit résoudre la relaxation continue uniquement"""
 function set_cover(distances::Matrix{Int},δ::Int,relax=false)
     n,m = size(distances)
 
@@ -231,4 +229,52 @@ function set_cover_heuristique(distances::Matrix{Int},δ::Int)
         i = argmin(ii -> setsize[ii] / b[ii],1:n)
     end
     return sum(y),y
+end
+
+"""Calcule la plus petite valeur telle que la fonction en entrée renvoie `true`\\
+   `f : Int -> Bool` - Fonction booléenne **croissante** à évaluer."""
+function dichotomie(f::Function,LB::Int,UB::Int)
+    while LB + 1 < UB
+        mean = (LB + UB) ÷ 2
+        if f(mean)
+            UB = mean
+        else
+            LB = mean
+        end
+    end
+    return UB
+end
+
+"""Résout le problème de p-centre à l'aide d'une série de problèmes de set cover."""
+function resol_p_centre_set_cover(distances::Matrix{Int},p::Int,UB::Int)
+    # Phase 1
+    UB = dichotomie(δ -> set_cover_arrondi(distances,δ)[1] ≤ p,0,UB)
+    LB = dichotomie(δ -> set_cover(distances,δ,true)[1] ≤ p,0,UB)
+    # Phase 2
+    OPT = dichotomie(δ -> set_cover(distances,δ)[1] ≤ p,LB,UB)
+    y = set_cover(distances,OPT)[2]
+    return OPT,y
+end
+
+"""Résout le problème de p-centre à l'aide d'une série de problèmes de set cover.\\
+   Part de la borne supérieure correspondant au maximum des distances."""
+function resol_p_centre_set_cover(distances::Matrix{Int},p::Int)
+    n,m = size(distances)
+    # UB = min(3 * main_stable(n,m,distances,p), maximum(distances))
+    UB = maximum(distances)
+    return resol_p_centre_set_cover(distances,p,UB)
+end
+
+############ REMOVE BELOW
+
+function resol_p_centre_set_cover_bounds(distances::Matrix{Int},p::Int,UB::Int,phase2::Bool)
+    # Phase 1
+    UB = dichotomie(δ -> set_cover_arrondi(distances,δ)[1] ≤ p,0,UB)
+    LB = dichotomie(δ -> set_cover(distances,δ,true)[1] ≤ p,0,UB)
+    if !phase2
+        return LB,UB,missing
+    end
+    # Phase 2
+    OPT = dichotomie(δ -> set_cover(distances,δ)[1] ≤ p,LB,UB)
+    return LB,UB,OPT
 end
