@@ -11,6 +11,7 @@ include("groupes/groupe6.jl")
 include("groupes/groupe7.jl")
 include("groupes/groupe8.jl")
 include("groupes/groupe9.jl")
+include("groupes/groupeA.jl")
 
 
 function main_grp1(filepath)
@@ -71,6 +72,14 @@ function main_grp9(filepath)
     # Execution du travail du groupe 9
 end
 
+function main_grpA(filepath)
+    # Execution du travail du groupe A
+    println("Résolution pour le fichier : $filepath")
+    n, m, distances = readInstance_tsp(filepath)
+    p = 5
+    algo_fixation_z(n, m, p, distances)
+end
+
 function main()
     # Problème de localisation simple
     # # Exemple d'utilisation avec le fichier "Example.txt"
@@ -105,13 +114,17 @@ function main()
     # main_grp5("data/instTest.txt")
 
     # Execution du code du groupe 6
-    main_grp6("data/instRand_100_100_1.txt")
+    # main_grp6("data/instRand_100_100_1.txt")
 
     # Execution du code du groupe 7
 
     # Execution du code du groupe 8
 
     # Execution du code du groupe 9
+
+    # Execution du code du groupe A
+    main_grpA("tsp_data/dj38.tsp")
+
 
 end
 

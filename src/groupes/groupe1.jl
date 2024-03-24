@@ -12,7 +12,6 @@ include("../readData.jl")
 
 
 function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int}; formulation::String = "S", pb_relache::Bool = false, silence::Bool = false)
-function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{Int}; formulation::String = "S", pb_relache::Bool = false, silence::Bool = false)
     # n nombre de sites
     # m le nombre de clients
     #n, m = m, n
@@ -23,9 +22,7 @@ function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{I
     if silence
         set_silent(model)
     end
-    set_time_limit_sec(model, 600)
-    MOI.set(model, MOI.NumberOfThreads(), 1)
-    set_time_limit_sec(model, 600)
+    set_time_limit_sec(model, 1800)
     MOI.set(model, MOI.NumberOfThreads(), 1)
 
     @variable(model, x[1:n, 1:m] >= 0)
@@ -81,8 +78,6 @@ function PL(n::Int, m::Int, opening_cost::Vector{Int}, cost_connection::Matrix{I
 end
 
 
-function main_PL(n, m, opening_cost, cost_connection)
-    # exemples d'utilisation de PL
 function main_PL(n, m, opening_cost, cost_connection)
     # exemples d'utilisation de PL
     # formulation forte, pb relache, pas d'affichage
@@ -192,8 +187,8 @@ function vec_to_string(vector::Vector{Int})
 end
 
 function pipeline_PL(formulation::String = "W")
-    folder_path = "./data/"
-    output_file = "./src/resultats/groupe1/PL" * formulation * ".csv"
+    folder_path = "./data/" 
+    output_file = "./results/PL" * formulation * ".csv"
 
     if isfile(output_file) 
         println("fichier deja existant")
@@ -201,7 +196,9 @@ function pipeline_PL(formulation::String = "W")
         result_df = DataFrame(CSV.File(output_file))
         result_df[!,:sites] = convert.( String255,result_df[!,:sites])
         files = setdiff(readdir(folder_path), result_df[:, "instance"])
+        println("a faire tourner : ", files)
     else
+        println("Pas de fichier existant")
         result_df = DataFrame(instance = [], obj=[], v_rel=[], gap = [], noeuds = [], temps=[], sites=[])
         files = readdir(folder_path)
     end
@@ -219,7 +216,7 @@ function pipeline_PL(formulation::String = "W")
     end
 end
 
-function main()
+function main_pipeline()
     pipeline_PL("S")
     pipeline_PL("W")
 end
