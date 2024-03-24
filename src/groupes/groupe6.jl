@@ -3,6 +3,7 @@ using JuMP
 using CPLEX
 
 function main_stable(n::Int, m::Int, cost_connection::Matrix{Int},p::Int)
+    """  Recherche dichotomique avec la méthode du stable """
     distances_K_D = distances_triées(n::Int, m::Int, cost_connection)
     K, D = distances_K_D[1], distances_K_D[2]
     kup=K
@@ -21,7 +22,11 @@ function main_stable(n::Int, m::Int, cost_connection::Matrix{Int},p::Int)
         delta= D[1]
         Arcs_Gp=creation_graphe_Gp(n,m ,cost_connection, delta)
         val=resolution_stable_max(n, Arcs_Gp)
-        return D[1]
+        if val<=p
+            return D[1]
+        else
+            return D[2]
+        end
     else
         return D[kup]
     end
