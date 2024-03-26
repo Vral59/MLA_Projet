@@ -9,8 +9,8 @@ include("groupes/groupe4.jl")
 include("groupes/groupe5.jl")
 include("groupes/groupe6.jl")
 include("groupes/groupe7.jl")
-include("groupes/groupe8.jl")
-include("groupes/groupe9.jl")
+# include("groupes/groupe8.jl")
+# include("groupes/groupe9.jl")
 include("groupes/groupeA.jl")
 
 
@@ -107,7 +107,7 @@ function main()
 
     # Execution du code du groupe 2
     # main_grp2("data/instTest.txt")
-    # benchmark_grp2()
+    benchmark_grp2()
 
 
     # Problème de P centres
@@ -133,7 +133,7 @@ function main()
     # Execution du code du groupe 9
 
     # Execution du code du groupe A
-    main_grpA("tsp_data/dj38.tsp")
+    # main_grpA("tsp_data/dj38.tsp")
 
     # Execution du code du groupe 10
 
