@@ -69,8 +69,14 @@ function main_grp8(filepath)
 end
 
 function main_grp9(filepath)
-    # Execution du travail du groupe 9
-end
+    # Execution du travail du groupe 9 : Problème de p-centres connexe
+    p = 5   
+    F, R, distanceMatrix = readInstance_tsp(filepath)
+    threshold = Int(floor(mean(distanceMatrix)))
+    println("Résolution pour le fichier : $filepath avec $p centres et un seuil $threshold")
+    println("Résolution de la formulation SCFF")
+    SCFF(F, R, distanceMatrix, threshold, p)
+end 
 
 function main_grpA(filepath)
     # Execution du travail du groupe A
