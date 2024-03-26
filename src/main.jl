@@ -80,6 +80,10 @@ function main_grpA(filepath)
     algo_fixation_z(n, m, p, distances)
 end
 
+function main_grp10(filepath)
+    # Execution du travail du groupe 10
+end
+
 function main()
     # Problème de localisation simple
     # # Exemple d'utilisation avec le fichier "Example.txt"
@@ -125,6 +129,7 @@ function main()
     # Execution du code du groupe A
     main_grpA("tsp_data/dj38.tsp")
 
+    # Execution du code du groupe 10
 
 end
 
