@@ -9,8 +9,8 @@ include("groupes/groupe4.jl")
 include("groupes/groupe5.jl")
 include("groupes/groupe6.jl")
 include("groupes/groupe7.jl")
-include("groupes/groupe8.jl")
-include("groupes/groupe9.jl")
+# include("groupes/groupe8.jl")
+# include("groupes/groupe9.jl")
 include("groupes/groupeA.jl")
 
 
@@ -69,8 +69,14 @@ function main_grp8(filepath)
 end
 
 function main_grp9(filepath)
-    # Execution du travail du groupe 9
-end
+    # Execution du travail du groupe 9 : Problème de p-centres connexe
+    p = 5   
+    F, R, distanceMatrix = readInstance_tsp(filepath)
+    threshold = Int(floor(mean(distanceMatrix)))
+    println("Résolution pour le fichier : $filepath avec $p centres et un seuil $threshold")
+    println("Résolution de la formulation SCFF")
+    SCFF(F, R, distanceMatrix, threshold, p)
+end 
 
 function main_grpA(filepath)
     # Execution du travail du groupe A
@@ -78,6 +84,10 @@ function main_grpA(filepath)
     n, m, distances = readInstance_tsp(filepath)
     p = 5
     algo_fixation_z(n, m, p, distances)
+end
+
+function main_grp10(filepath)
+    # Execution du travail du groupe 10
 end
 
 function main()
@@ -97,7 +107,7 @@ function main()
 
     # Execution du code du groupe 2
     # main_grp2("data/instTest.txt")
-    # benchmark_grp2()
+    benchmark_grp2()
 
 
     # Problème de P centres
@@ -123,8 +133,9 @@ function main()
     # Execution du code du groupe 9
 
     # Execution du code du groupe A
-    main_grpA("tsp_data/dj38.tsp")
+    # main_grpA("tsp_data/dj38.tsp")
 
+    # Execution du code du groupe 10
 
 end
 

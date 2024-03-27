@@ -7,31 +7,14 @@ using CSV
 using DataFrames
 include("../readData.jl")
 
-
-hard_instances_benoit = [
-    "ga250a-3",
-    "ga250a-4",
-    "ga250a-5",
-    "instC1.txt",
-]
-
-hard_instances_justin = [
-    "gs250a-3",
-    "gs250a-5",
-    "instC2.txt",
-    "instC3.txt",
-]
-
-
 function benchmark_grp2()
     repo_path = "data"
-    time_limit = 3600
+    time_limit = 1800
     silence = false
 
     columns = ["instance", "method", "obj", "bound", "time", "n_nodes",  "root_obj", "root_bound", "n_variables", "n_constraints"]
     data = []
-    # for entry in readdir(repo_path)
-    for entry in hard_instances_benoit
+    for entry in readdir(repo_path)
         fullpath = joinpath(repo_path, entry)
         if isfile(fullpath)
             println("Résolution pour le fichier : $fullpath")
@@ -40,9 +23,8 @@ function benchmark_grp2()
 
         # Formulation alternative
         println("\nFormulation alternative relachée")
-        # root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
-        #     cost_connection, pb_relache = true, silence = silence, time_limit = time_limit)
-        root_obj, root_bound = -1, -1
+        root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
+            cost_connection, pb_relache = true, silence = silence, time_limit = time_limit)
 
         println("\nFormulation alternative exacte")
         obj, bound, time, n_nodes, n_variables, n_constraints = PLS_bis(n, m, opening_cost,
@@ -50,11 +32,13 @@ function benchmark_grp2()
         push!(data, (entry, "formul_alt", round(obj, digits=1), round(bound, digits=1), round(time, digits=3),
             n_nodes, round(root_obj, digits=1), round(root_bound, digits=1), n_variables, n_constraints))
 
+        df = DataFrame(data, columns)
+        CSV.write("results/benchmark_grp2_30minuts.csv", df)
+
         # Formulation alternative variante
         println("\nFormulation alternative variante relachée")
-        # root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
-        #     cost_connection, pb_relache = true, variante = true, silence = silence, time_limit = time_limit)
-        root_obj, root_bound = -1, -1
+        root_obj, root_bound, _, _, _, _ = PLS_bis(n, m, opening_cost,
+            cost_connection, pb_relache = true, variante = true, silence = silence, time_limit = time_limit)
 
         println("\nFormulation alternative variante exacte")
         obj, bound, time, n_nodes, n_variables, n_constraints = PLS_bis(n, m, opening_cost,
@@ -63,7 +47,7 @@ function benchmark_grp2()
             n_nodes, round(root_obj, digits=1), round(root_bound, digits=1), n_variables, n_constraints))
 
         df = DataFrame(data, columns)
-        CSV.write("results/benchmark_grp2_1hour_benoit.csv", df)
+        CSV.write("results/benchmark_grp2_30minuts.csv", df)
     end
 
 end
