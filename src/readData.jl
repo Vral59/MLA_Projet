@@ -99,3 +99,27 @@ function readInstance_tsp(path::String)
 end
 
 
+
+function read_data_npc(file_path)
+    file = open(file_path, "r")
+
+    filename = readline(file)
+    println("Lecture du fichier : $filename")
+
+    n, m, _ = parse.(Int, split(readline(file)))
+
+    cost_connection = zeros(Int, m, n)
+
+    for i in 1:n
+        line = split(readline(file))
+        cost_connection[:, i] .= parse.(Int, line[3:end])
+    end
+
+    close(file)
+
+    n, m = m,n
+
+    return n, m, cost_connection
+end
+
+
