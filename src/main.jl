@@ -42,6 +42,13 @@ end
 
 function main_grp4(filepath)
     # Execution du travail du groupe 4
+    println("Résolution pour le fichier : $filepath")
+    n, m, distances = read_data_npc(filepath)
+
+    obj, temps, y, z = NPC(n,m,p,distances)
+    println("Valeur distance max = ", obj, "\n \n")
+    println("Sites ouverts = ", y, "\n \n")
+    println("Temps de calcul = ", temps, "\n \n")
 end
 
 function main_grp5(filepath)
