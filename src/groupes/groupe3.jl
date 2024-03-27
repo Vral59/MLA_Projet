@@ -168,7 +168,7 @@ function init_empty_solution(n::Int, m::Int)
     return x, y, d_min
 end
 
-function  solve_greedy(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int; verbose::Int = 0)
+function solve_greedy(n::Int, m::Int, cost_connection::Matrix{Int}, nb_centres::Int; verbose::Int = 0)
     """Compute a solution with the greedy heuristic adding centers sequentially"""
     obj = Inf
     x, y, d_min = init_empty_solution(n, m)
@@ -185,15 +185,15 @@ function main_p_centres(n::Int, m::Int, cost_connection::Matrix{Int64}, nb_centr
     println("\n")
     println("Valeur de la borne inférieure = ", lower_bound_0(n, m, cost_connection), "\n")
     println("Valeur de la borne supérieure obtenue avec 1 centre = ", one_centre_ub(n, m, cost_connection), "\n")
-    obj, temps, noeuds, x, y, _, _, _ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60., verbose = 0)
+    obj, temps, noeuds, x, y, _, _, _ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=120., verbose = 0)
     println("Valeur relaxation formulation PC1 = ", obj, ", obtenue en ", temps, "s", "\n")
-    obj, temps, noeuds, x, y, _,_,_ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60., verbose = 0)
+    obj, temps, noeuds, x, y, _,_,_ = solve_pc1(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=120., verbose = 0)
     println("Valeur formulation PC1 = ", obj,  ", obtenue en ", temps, "s","\n")
-    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=60., verbose = 0)
+    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  true, time_limit=120., verbose = 0)
     println("Valeur relaxation formulation PC = ", obj, ", obtenue en ", temps, "s", "\n")
-    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=60., verbose = 0)
+    obj, temps, noeuds, x, y,_,_,_ = solve_pc(n, m, cost_connection, nb_centres; relaxation =  false, time_limit=120., verbose = 0)
     println("Valeur formulation PC = ", obj, ", obtenue en ", temps, "s", "\n")
-    temps = @elapsed obj, x, y = solve_greedy(n, m, cost_connection, nb_centres; verbose = 1)
+    temps = @elapsed obj, x, y = solve_greedy(n, m, cost_connection, nb_centres; verbose = 0)
     println("Valeur heuristique greedy = ", obj, ", obtenue en ", temps, "s", "\n")
 end
 
@@ -204,7 +204,7 @@ end
 
 function benchmark_grp3()
     repo_path = "tsp_data"
-    time_lim = 180.0
+    time_lim = 300.0
 
     ps = [5, 10, 20, 50]
 
@@ -212,7 +212,7 @@ function benchmark_grp3()
     data = []
     for entry in readdir(repo_path)
         dim = parse(Int64, filter(isdigit, entry))
-        if dim > 1000
+        if dim > 900
             println("Skipping $entry, too large")
             continue
         end
@@ -258,7 +258,7 @@ function benchmark_grp3()
             push!(data, format_df_line(entry, p, "Greedy", obj, missing, time, missing, missing, missing, missing))
 
             df = DataFrame(data, columns)
-            CSV.write("results/benchmark_grp3_.csv", df)
+            CSV.write("results/benchmark_grp3_v3.csv", df)
         end
     end
 end
