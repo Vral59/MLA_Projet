@@ -8,57 +8,122 @@ function main_stable(n::Int, m::Int, cost_connection::Matrix{Int},p::Int)
     K, D = distances_K_D[1], distances_K_D[2]
     kup=K
     klb=1
-    while kup-klb>1
-        delta= D[Int(floor((kup+klb)/2))]
+    solutions=[[0.0] for d in D] #Stocke les solutions du stable maximum pour une valeur de d -> utile pour la construction d'une solution réalisable
+    while kup-klb>1 #Actualisation des bornes de la dichotomie
+        ind=Int(floor((kup+klb)/2))
+        delta= D[ind]
         Arcs_Gp=creation_graphe_Gp(n,m ,cost_connection, delta)
-        val=resolution_stable_max(n, Arcs_Gp)
+        val, sol_delta=resolution_stable_max(n, Arcs_Gp)
+        if val<=-1 #val = -1 signifie que le stable maximum n'a pas été trouvé dans le temps limite
+            return (-1, -1)
+        end
+        solutions[ind]=sol_delta
         if val<=p
             kup=Int(floor((kup+klb)/2))
         else
             klb=Int(floor((kup+klb)/2))
         end
     end
-    if kup==2
+    if kup==2 #Gestion du cas où kup==2
         delta= D[1]
         Arcs_Gp=creation_graphe_Gp(n,m ,cost_connection, delta)
-        val=resolution_stable_max(n, Arcs_Gp)
+        val, sol=resolution_stable_max(n, Arcs_Gp)
+        if val<=-1
+            return (-1, -1)
+        end
+        solutions[1]=sol
         if val<=p
-            return D[1]
+            val_sol_realisable=build_solution_after_stable(n, m, p, cost_connection, D[1], solutions[1])
+            return D[1], val_sol_realisable
         else
-            return D[2]
+            if solutions[2]==[0.0]
+                Arcs_Gp=creation_graphe_Gp(n,m ,cost_connection, D[2])
+                val, sol=resolution_stable_max(n, Arcs_Gp)
+                if val<=-1
+                    return (-1, -1)
+                end
+                solutions[2]=sol
+            end
+            Arcs_Gp=creation_graphe_Gp(n,m ,cost_connection, D[2])
+            val_sol_realisable=build_solution_after_stable(n, m, p, cost_connection, D[kup], solutions[kup])
+            return D[2], val_sol_realisable
         end
     else
-        return D[kup]
+        if solutions[kup]==[0.0]
+            Arcs_Gp=creation_graphe_Gp(n,m ,cost_connection, D[kup])
+            val, sol=resolution_stable_max(n, Arcs_Gp)
+            if val<=-1
+                return (-1, -1)
+            end
+            solutions[kup]=sol
+        end
+        val_sol_realisable=build_solution_after_stable(n, m, p, cost_connection, D[kup], solutions[kup])
+        return D[kup], val_sol_realisable
     end
 end 
+
+function build_solution_after_stable(n::Int, m::Int, p::Int, cost_connection::Matrix{Int}, delta::Int, solution_stable::Vector{Float64})
+    """Calcul d'une solution réalisable à partir d'un stable maximum
+        On ouvre d'abord des sites liés au client du stable puis on ajoute les clients non affectés à leur site ouvert le plus proche"""
+    client_stable=[i for i in 1:n if solution_stable[i]>0.1]
+    client_affected=[0 for i in 1:n]
+    site_is_opened=[0 for j in 1:m]
+    solution=[0 for i in 1:n]
+    nb_sites_ouverts=0
+    while nb_sites_ouverts < length(client_stable)
+        current_client=nothing
+        for id in client_stable
+            if client_affected[id]==0
+                current_client=id
+                break
+            end
+        end
+        possible_site=[j for j in 1:m if site_is_opened[j]==0]
+        open_site=possible_site[argmin([cost_connection[current_client, j] for j in 1:m if site_is_opened[j]==0])] #On ouvre le site le plus proche au client courant présent dans le stable
+        nb_sites_ouverts+=1
+        site_is_opened[open_site]=1
+        client_affected[current_client]=1
+        solution[current_client]=open_site
+        for i in 1:n
+            if client_affected[i]==0 && cost_connection[i, open_site]<=delta
+                solution[i]=open_site
+                client_affected[i]=1
+            end
+        end
+    end
+    for i in 1:n #Affectation des clients restants
+        if client_affected[i]==0
+            client_affected[i]=1
+            possible_site=[j for j in 1:m if site_is_opened[j]==1]
+            solution[i]=possible_site[argmin([cost_connection[i,j] for j in 1:m if site_is_opened[j]==1])]
+        end
+    end
+    return maximum([cost_connection[i, solution[i]] for i in 1:n])
+end
 
 function distances_triées(n::Int, m::Int, distances::Matrix{Int})
     """Renvoit les distances différentes triées et leur nombre K"""
     # n nombre de clients
     # m nombre de sites
     
-    distances_différentes = []
-    for i in 1:n
-        for j in 1:m
-            if !(distances[i,j] in distances_différentes)
-                push!(distances_différentes,distances[i,j])
-            end
-        end
-    end
-    
-    distances_différentes = sort(distances_différentes)
-    K = length(distances_différentes)
+    distances_differentes_ = Set(distances)
 
-    return (K,distances_différentes)
+    distances_differentes = [d for d in distances_differentes_]
+    
+    distances_differentes = sort(distances_differentes)
+    K = length(distances_differentes)
+
+    return (K,distances_differentes)
 end
 
-function resolution_stable_max(n::Int, Arcs_Gp::Vector{Any})
+function resolution_stable_max(n::Int, Arcs_Gp::Vector{Tuple{Int64, Int64}})
     """Calcul le stable dans le graphe Gp"""
     # n nombre de clients
     # Arcs G_p les arcs du graphe Gp
     
     model = Model(CPLEX.Optimizer)
     set_silent(model)
+    set_time_limit_sec(model, 30)
 
     @variable(model, x[1:n], Bin)
 
@@ -68,35 +133,26 @@ function resolution_stable_max(n::Int, Arcs_Gp::Vector{Any})
 
     optimize!(model)
 
-    return objective_value(model)
+    if primal_status(model) == MOI.FEASIBLE_POINT
+        if termination_status(model) == MOI.TIME_LIMIT
+            return (-1, nothing)
+        else 
+            return objective_value(model), JuMP.value.(x)
+        end
+    else
+        return (-1, nothing)
+    end
 end
 
 function creation_graphe_Gp(n::Int, m::Int, cost_connection::Matrix{Int}, delta::Int)
     """Calcul les arcs du graphe Gp."""
-    # n nombre de clients, m le nombre de sites
-    # delta distance pour créer le graphe G
-    Arcs_G=[]
-    sites_clients_delta=[[] for j in 1:m]
+    binary_matrix=cost_connection.<=delta
+    link_matrix= binary_matrix*transpose(binary_matrix)
     for i in 1:n
-        for j in 1:m
-            if cost_connection[i,j]<= delta #Il existe un arc dans le graphe G si le site j est à moins de delta du client i
-                push!(Arcs_G, (i,j))
-                push!(sites_clients_delta[j], i)
-            end
-        end
+        link_matrix[i,i]=0
     end
-    Arcs_Gp=[]
-    Arcs_Gp_exist=[[0 for ip in 1:n] for i in 1:n]
-    for j in 1:m
-        for i in sites_clients_delta[j]
-            for ip in sites_clients_delta[j]
-                if ip>i && Arcs_Gp_exist[i][ip]==0 # Il existe un arc dans Gp si (i,ip) ont un voisin commun dans le graphe G
-                    push!(Arcs_Gp, (i,ip))
-                    Arcs_Gp_exist[i][ip]=1
-                end
-            end
-        end
-    end
+    index=findall(x -> x > 0, link_matrix)
+    Arcs_Gp=[Tuple(arc) for arc in index]
     return Arcs_Gp
 end
 
