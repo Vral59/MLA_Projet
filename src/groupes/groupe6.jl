@@ -162,6 +162,7 @@ function set_cover(distances::Matrix{Int},δ::Int,relax=false)
     n,m = size(distances)
 
     model = Model(CPLEX.Optimizer)
+    set_time_limit_sec(model,10)
     set_silent(model)
 
     @variable(model,y[1:m],Bin)
@@ -295,12 +296,16 @@ end
 """Calcule la plus petite valeur telle que la fonction en entrée renvoie `true`\\
    `f : Int -> Bool` - Fonction booléenne **croissante** à évaluer."""
 function dichotomie(f::Function,LB::Int,UB::Int)
+    t0 = time()
     while LB + 1 < UB
         mean = (LB + UB) ÷ 2
         if f(mean)
             UB = mean
         else
             LB = mean
+        end
+        if time()-t0>30
+            return Int(1e12)
         end
     end
     return UB
