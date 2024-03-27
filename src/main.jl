@@ -95,6 +95,14 @@ end
 
 function main_grp10(filepath)
     # Execution du travail du groupe 10
+    println("Résolution pour le fichier : $filepath")
+    n, m, distance_matrix, Abs, Ord = readInstance_tsp_adapted(filepath)
+    p = 2
+    clusters = 16
+    obj, y, time = p_center_clustering(n, m, distance_matrix, Abs, Ord, p, nb_clusters=clusters, npci=false, time_limit=180)
+    println("Objective value: ", obj)
+    println("Time: ", time)
+    println("Open sites: ", findall(y -> y == 1, y))
 end
 
 function main()
