@@ -162,7 +162,7 @@ function set_cover(distances::Matrix{Int},δ::Int,relax=false)
     n,m = size(distances)
 
     model = Model(CPLEX.Optimizer)
-    set_time_limit_sec(model,10)
+    set_time_limit_sec(model,30)
     set_silent(model)
 
     @variable(model,y[1:m],Bin)
@@ -312,14 +312,20 @@ function dichotomie(f::Function,LB::Int,UB::Int)
 end
 
 """Résout le problème de p-centre à l'aide d'une série de problèmes de set cover."""
-function resol_p_centre_set_cover(distances::Matrix{Int},p::Int,UB::Int)
-    # Phase 1
-    UB = dichotomie(δ -> set_cover_arrondi(distances,δ)[1] ≤ p,0,UB)
-    LB = dichotomie(δ -> set_cover(distances,δ,true)[1] ≤ p,0,UB)
-    # Phase 2
-    OPT = dichotomie(δ -> set_cover(distances,δ)[1] ≤ p,LB,UB)
-    y = set_cover(distances,OPT)[2]
-    return OPT,y
+function resol_p_centre_set_cover(distances::Matrix{Int},p::Int,UB::Int, phase2only::Bool)
+    if phase2only
+        OPT = dichotomie(δ -> set_cover(distances,δ)[1] ≤ p,0,UB)
+        y = set_cover(distances,OPT)[2]
+    else
+        # Phase 1
+        UB = dichotomie(δ -> set_cover_arrondi(distances,δ)[1] ≤ p,0,UB)
+        LB = dichotomie(δ -> set_cover(distances,δ,true)[1] ≤ p,0,UB)
+        # Phase 2
+        println((LB,UB))
+        OPT = dichotomie(δ -> set_cover(distances,δ)[1] ≤ p,LB,UB)
+        y = set_cover(distances,OPT)[2]
+    end
+    return OPT
 end
 
 ############ REMOVE BELOW
