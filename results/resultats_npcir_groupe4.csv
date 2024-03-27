@@ -1,0 +1,8 @@
+instances,p,distance_max,temps_calcul
+instTest.txt,3,100.0,0.02
+instC3.txt,3,30031.0,26.875
+instC2.txt,3,30031.0,28.236
+instC1.txt,3,30034.0,26.91
+instA3.txt,3,30035.0,27.62
+instA2.txt,3,30031.0,17.248
+instA1.txt,3,30034.0,37.595
