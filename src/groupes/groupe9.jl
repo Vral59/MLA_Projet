@@ -190,6 +190,7 @@ function MTZ(F::Int, R::Int, distanceMatrix::Matrix{Int}, threshold::Int, p::Int
         @constraint(m, [i in 1:F,j in 1:F], (F+1) * xF[i,j] + u[i] <= u[j] + F )
         @constraint(m, [j in 1:F], (F+1) * xr[j] + ur <= u[j] + F )
         @constraint(m, sum(xr[i] for i in 1:F) == 1)
+        @constraint(m, ur == 0)
     end
 
     @objective(m, Min, r)
@@ -210,7 +211,7 @@ function MTZ(F::Int, R::Int, distanceMatrix::Matrix{Int}, threshold::Int, p::Int
         set_binary(xr[i])
     end
 
-    #set_attribute(m, "CPXPARAM_TimeLimit", 15 * 60)
+    set_attribute(m, "CPXPARAM_TimeLimit", 15 * 60)
     start_time = time()
     optimize!(m)
     end_time = time()
@@ -312,18 +313,19 @@ function runInstance(instanceName::String, p::Int)
 end
 
 
-F, R, distanceMatrix = readInstance_tsp("MLA_Projet/tsp_data/lu980.tsp")
+F, R, distanceMatrix = readInstance_tsp("MLA_Projet/tsp_data/qa194.tsp")
 
 threshold = Int(floor(mean(distanceMatrix)))
 println("TEST")
 println(threshold)
 p = 10
 
-MTZ(F, R, distanceMatrix, threshold, p, true, false, false)
+
+#SCFF(F, R, distanceMatrix, threshold, p, true, true, false)
 
 #MCFF(F, R, distanceMatrix, threshold, p, true, true, false)
 
-#MTZ(F, R, distanceMatrix, threshold, p)
+MTZ(F, R, distanceMatrix, threshold, p, true, true, false)
 
 # benchmarks = ["qa194", "lu980", "zi929"]
 # for instance in benchmarks
