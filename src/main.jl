@@ -9,8 +9,8 @@ include("groupes/groupe4.jl")
 include("groupes/groupe5.jl")
 include("groupes/groupe6.jl")
 include("groupes/groupe7.jl")
-# include("groupes/groupe8.jl")
-# include("groupes/groupe9.jl")
+include("groupes/groupe8.jl")
+include("groupes/groupe9.jl")
 include("groupes/groupeA.jl")
 
 
@@ -82,7 +82,11 @@ function main_grp9(filepath)
     threshold = Int(floor(mean(distanceMatrix)))
     println("Résolution pour le fichier : $filepath avec $p centres et un seuil $threshold")
     println("Résolution de la formulation SCFF")
-    SCFF(F, R, distanceMatrix, threshold, p)
+    SCFF(F, R, distanceMatrix, threshold, p, false)
+    println("Résolution de la formulation MCFF")
+    MCFF(F, R, distanceMatrix, threshold, p, false)
+    println("Résolution de la formulation MTZ")
+    MTZ(F, R, distanceMatrix, threshold, p, false)
 end 
 
 function main_grpA(filepath)
@@ -122,7 +126,7 @@ function main()
 
     # Execution du code du groupe 2
     # main_grp2("data/instTest.txt")
-    benchmark_grp2()
+    # benchmark_grp2()
 
 
     # Problème de P centres
@@ -148,7 +152,7 @@ function main()
     # Execution du code du groupe 9
 
     # Execution du code du groupe A
-    # main_grpA("tsp_data/dj38.tsp")
+    main_grpA("tsp_data/dj38.tsp")
 
     # Execution du code du groupe 10
 
