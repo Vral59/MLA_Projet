@@ -76,7 +76,8 @@ function NPC(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = fal
 
     @variable(model, z[1:(K-1)], Bin)
     @variable(model, y[1:m], Bin)
-
+    
+    
     
     @constraint(model, [i in 1:n], sum(y[j] for j in 1:m)  == p)
     
@@ -86,12 +87,12 @@ function NPC(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = fal
 
     @objective(model, Min, D[1]+sum((D[k]-D[k-1]) * z[k-1] for k in 2:K))
 
+   
     optimize!(model)
 
 
-    return objective_value(model), round(solve_time(model),digits=5), value.(y), value.(z)
+    return objective_value(model), round(solve_time(model),digits=5), value.(y), value.(z), n + n*K
 end
-
 
 
 
@@ -117,7 +118,8 @@ function NPCi(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = fa
     
     @constraint(model, [i in 1:n], sum(y[j] for j in 1:m)  == p)
     
-    @constraint(model, [i in 1:n, k in 1:K], z[k]+sum(y[j] for j in 1:m if distances[i,j]<=D[k])  >= 1)
+    @constraint(model, [i in 1:n, k in 1:(K-1),any(distances[i,j]==D[k+1] for j in 1:m)], z[k]+sum(y[j] for j in 1:m if distances[i,j]<=D[k])  >= 1)
+    @constraint(model,[i in 1:n],z[K]+sum(y[j] for j in 1:m if distances[i,j]<=D[K])>= 1)
 
     @constraint(model, [k in 1:(K-1)], z[k] >= z[k+1])
 
@@ -127,8 +129,9 @@ function NPCi(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = fa
 
     optimize!(model)
 
+    l = length([(i,k,j) for i in 1:n, k in 1:(K-1), j in 1:m if distances[i,j]==D[k+1]])
 
-    return objective_value(model), round(solve_time(model),digits=5), value.(y), value.(z)
+    return objective_value(model), round(solve_time(model),digits=5), value.(y), value.(z), 2*n+l+K-1
 end
 
 
@@ -155,8 +158,8 @@ function NPCir(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = f
     
     @constraint(model, [i in 1:n], sum(y[j] for j in 1:m)  == p)
     
-    @constraint(model, [i in 1:n, k in 1:K], z[k]+sum(y[j] for j in 1:m if distances[i,j]<=D[k])  >= 1)
-
+    @constraint(model, [i in 1:n, k in 1:(K-1),any(distances[i,j]==D[k+1] for j in 1:m)], z[k]+sum(y[j] for j in 1:m if distances[i,j]<=D[k])  >= 1)
+    @constraint(model,[i in 1:n],z[K]+sum(y[j] for j in 1:m if distances[i,j]<=D[K])>= 1)
     @constraint(model, [k in 1:(K-1)], z[k] >= z[k+1])
 
 
@@ -166,9 +169,10 @@ function NPCir(n::Int, m::Int, p::Int, distances::Matrix{Int}; silence::Bool = f
     optimize!(model)
 
 
-    return objective_value(model), round(solve_time(model),digits=5), value.(y), value.(z)
-end
+    l = length([(i,k,j) for i in 1:n, k in 1:(K-1), j in 1:m if distances[i,j]==D[k+1]])
 
+    return objective_value(model), round(solve_time(model),digits=5), value.(y), value.(z), 2*n+l+K-1
+end
 
 
 
@@ -217,7 +221,7 @@ function resultats_npc_csv(chemins_fichiers::Vector{String}, fichier_csv::String
     for chemin in chemins_fichiers
         nom_fichier = basename(chemin)
         n, m, distances = read_data_npc(chemin)
-        obj, temps, y, z = NPC(n,m,3,distances)
+        obj, temps, y, z, l = NPC(n,m,3,distances)
         push!(df, (instances=nom_fichier, p=3, distance_max=obj, temps_calcul=temps))
     end
 
@@ -236,7 +240,7 @@ function resultats_npci_csv(chemins_fichiers::Vector{String}, fichier_csv::Strin
     for chemin in chemins_fichiers
         nom_fichier = basename(chemin)
         n, m, distances = read_data_npc(chemin)
-        obj, temps, y, z = NPCi(n,m,3,distances)
+        obj, temps, y, z, l = NPCi(n,m,3,distances)
         push!(df, (instances=nom_fichier, p=3, distance_max=obj, temps_calcul=temps))
     end
 
@@ -255,7 +259,7 @@ function resultats_npcir_csv(chemins_fichiers::Vector{String}, fichier_csv::Stri
     for chemin in chemins_fichiers
         nom_fichier = basename(chemin)
         n, m, distances = read_data_npc(chemin)
-        obj, temps, y, z = NPCir(n,m,3,distances)
+        obj, temps, y, z, l = NPCir(n,m,3,distances)
         push!(df, (instances=nom_fichier, p=3, distance_max=obj, temps_calcul=temps))
     end
 
